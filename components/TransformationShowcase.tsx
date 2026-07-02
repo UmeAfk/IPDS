@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { AnimatePresence, motion, useInView } from "framer-motion";
+import { ZoomIn, X } from "lucide-react";
 import { getSiteContent, type SiteContent } from "@/lib/supabase";
 
 export default function TransformationShowcase() {
@@ -14,6 +15,8 @@ export default function TransformationShowcase() {
   useEffect(() => {
     getSiteContent("transformation").then(data => { setItems(data); setLoaded(true); });
   }, []);
+
+  const [lightbox, setLightbox] = useState<string | null>(null);
 
   if (!loaded) return null;
 
@@ -45,13 +48,21 @@ export default function TransformationShowcase() {
                 className="overflow-hidden bg-muted border border-border hover:border-accent/30 transition-all duration-250 flex flex-col h-full"
                 style={{ borderRadius: "var(--radius)" }}
               >
-                <div className="relative h-64">
+                <div
+                  className="relative h-80 cursor-zoom-in"
+                  onClick={() => setLightbox((stage as any).media_url || "")}
+                >
                   <Image
                     src={(stage as any).media_url || ""}
                     alt={stage.body || ""}
                     fill
                     className="object-cover"
                   />
+                  <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
+                    <div className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center">
+                      <ZoomIn size={18} className="text-foreground" />
+                    </div>
+                  </div>
                 </div>
                 <div className="p-4">
                   <p className="text-xs font-mono uppercase tracking-widest text-accent mb-1">
@@ -64,6 +75,42 @@ export default function TransformationShowcase() {
           ); })}
         </div>
       </div>
+
+      <AnimatePresence>
+        {lightbox && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4 md:p-10"
+            onClick={() => setLightbox(null)}
+          >
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.92, opacity: 0 }}
+              className="relative max-w-5xl w-full max-h-[85vh]"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setLightbox(null)}
+                className="absolute -top-10 right-0 text-white/70 hover:text-white flex items-center gap-2 text-sm transition-colors"
+              >
+                <X size={18} /> Close
+              </button>
+              <div className="relative w-full h-[75vh] rounded-2xl overflow-hidden">
+                <Image
+                  src={lightbox}
+                  alt="Stage view"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

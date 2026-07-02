@@ -25,13 +25,44 @@ export default function Hero() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="max-w-2xl"
+          className="max-w-4xl mx-auto text-center"
         >
-          <h1 className="heading-hero text-white">
-            Empowering to fulfill<br />
-            the <em className="text-accent not-italic">real estate dream</em>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.05 }}
+            className="font-mono text-[11px] uppercase tracking-[0.3em] text-white/50 mb-6"
+          >
+            Pune's Pioneer in Self-Redevelopment
+          </motion.p>
+          <h1 className="font-display text-white leading-tight"
+              style={{ fontSize: "clamp(2.8rem, 6vw, 5.5rem)", fontWeight: 700 }}>
+            <motion.span
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="block"
+            >
+              Empowering to Fulfill
+            </motion.span>
+            <motion.span
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.15, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="block"
+            >
+              the{" "}
+              <span className="text-accent italic" style={{ fontWeight: 400 }}>
+                Real Estate Dream
+              </span>
+            </motion.span>
           </h1>
-          <div className="flex gap-4 mt-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="flex gap-4 mt-10 justify-center"
+          >
             <button
               className="btn-primary"
               onClick={() => document.getElementById("projects")?.scrollIntoView({ behavior: "smooth" })}
@@ -46,7 +77,7 @@ export default function Hero() {
             >
               Start a project
             </button>
-          </div>
+          </motion.div>
         </motion.div>
       </div>
     </section>
