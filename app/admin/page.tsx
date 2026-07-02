@@ -77,7 +77,7 @@ export default function AdminPage() {
           </div>
 
           <h1 className="text-3xl font-medium tracking-tighter mb-2">IPDS</h1>
-          <p className="text-sm text-muted-foreground font-light mb-10 uppercase tracking-[0.2em] text-[10px] font-bold">Administrative Access</p>
+          <p className="text-[10px] font-bold text-muted-foreground mb-10 uppercase tracking-[0.2em]">Administrative Access</p>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2 text-left">

@@ -65,25 +65,33 @@ export default function FeaturedProjects() {
             </div>
           </div>
 
-          <div className="flex gap-16 items-center flex-1 max-h-[70vh]">
+          <div className="flex gap-6 md:gap-16 items-center flex-1 max-h-[70vh]">
             {filtered.length === 0 ? (
               <p className="text-muted-foreground py-8">No projects match this filter.</p>
             ) : (
               <>
-                <div className="flex flex-col gap-6 flex-shrink-0 max-h-[60vh] overflow-y-auto scrollbar-hide">
+                <div className="hidden md:flex flex-col items-center flex-shrink-0 relative">
+                  <div className="absolute top-0 bottom-0 w-px bg-foreground/15 left-1/2 -translate-x-1/2 z-0" />
                   {filtered.map((project, i) => {
                     const isActive = i === index;
                     return (
                       <Link
                         key={project.id}
                         href={`/projects/${slugify(project.title)}`}
-                        className={`w-14 h-14 rounded-full flex items-center justify-center font-display text-lg transition-all duration-500 ${
-                          isActive
-                            ? "bg-foreground text-background scale-110"
-                            : "border border-foreground/20 text-foreground/50 hover:border-foreground/50 hover:text-foreground/80"
-                        }`}
+                        className="relative z-10 flex flex-col items-center"
                       >
-                        {String(i + 1).padStart(2, "0")}
+                        <div
+                          className={`w-14 h-14 rounded-full flex items-center justify-center font-display text-base transition-all duration-500 border ${
+                            isActive
+                              ? "bg-foreground text-background border-foreground scale-110"
+                              : "bg-background text-foreground/50 border-foreground/20 hover:border-foreground/60 hover:text-foreground"
+                          }`}
+                        >
+                          {String(i + 1).padStart(2, "0")}
+                        </div>
+                        {i < filtered.length - 1 && (
+                          <div className="h-10" />
+                        )}
                       </Link>
                     );
                   })}
