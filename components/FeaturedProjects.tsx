@@ -34,6 +34,16 @@ export default function FeaturedProjects() {
 
   const [index, setIndex] = useState(0);
   const safeIndex = Math.min(index, Math.max(filtered.length - 1, 0));
+  const circlesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = circlesRef.current;
+    if (!el) return;
+    const activeEl = el.children[safeIndex] as HTMLElement;
+    if (activeEl) {
+      activeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [safeIndex]);
 
   useEffect(() => {
     const unsub = activeIndex.on("change", (v) => setIndex(v));
@@ -75,20 +85,20 @@ export default function FeaturedProjects() {
                   style={{ height: "calc(100vh - 260px)" }}
                 >
                   <div className="absolute top-0 bottom-0 w-px bg-foreground/15 left-1/2 -translate-x-1/2 z-0" />
-                  <div className="relative z-10 flex flex-col items-center justify-between h-full w-full">
+                  <div ref={circlesRef} className="relative z-10 flex flex-col items-center gap-5 overflow-y-auto scrollbar-hide h-full py-2 w-14">
                     {filtered.map((project, i) => {
                       const isActive = i === safeIndex;
                       return (
                         <Link
                           key={project.id}
                           href={`/projects/${slugify(project.title)}`}
-                          className="relative z-10"
+                          className="flex-shrink-0"
                         >
                           <div
                             className={`rounded-full flex items-center justify-center font-display transition-all duration-500 border ${
                               isActive
-                                ? "bg-foreground text-background border-foreground w-12 h-12 text-sm"
-                                : "bg-background text-foreground/40 border-foreground/20 hover:border-foreground/50 hover:text-foreground w-10 h-10 text-xs"
+                                ? "w-12 h-12 text-sm bg-foreground text-background border-foreground scale-110 shadow-lg"
+                                : "w-10 h-10 text-xs bg-background text-foreground/40 border-foreground/20 hover:border-foreground/50 hover:text-foreground hover:scale-105"
                             }`}
                           >
                             {String(i + 1).padStart(2, "0")}
