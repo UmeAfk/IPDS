@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
@@ -21,7 +22,6 @@ export default function FeaturedProjects() {
   }, []);
 
   const filtered = projects.filter(p => filter === "All" || p.type === filter);
-  const safeIndex = Math.min(index, Math.max(filtered.length - 1, 0));
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -33,6 +33,7 @@ export default function FeaturedProjects() {
   );
 
   const [index, setIndex] = useState(0);
+  const safeIndex = Math.min(index, Math.max(filtered.length - 1, 0));
 
   useEffect(() => {
     const unsub = activeIndex.on("change", (v) => setIndex(v));
@@ -103,10 +104,11 @@ export default function FeaturedProjects() {
                         className="block w-full h-full relative overflow-hidden group"
                         style={{ borderRadius: "var(--radius)" }}
                       >
-                        <img
+                        <Image
                           src={filtered[safeIndex].image_url}
                           alt={filtered[safeIndex].title}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-8">

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Play } from "lucide-react";
@@ -10,16 +11,18 @@ function TestimonialCard({ t, onPlayVideo }: { t: SiteContent; onPlayVideo?: (ur
   return (
     <div className="bg-card border border-border p-8 rounded-2xl flex flex-col gap-6 min-w-[320px] max-w-[400px]">
       {t.media_url && t.media_type === "image" && (
-        <img src={t.media_url} alt={t.author_name || ""} className="w-full h-40 object-cover rounded-xl" />
+        <div className="relative h-40 rounded-xl overflow-hidden">
+          <Image src={t.media_url} alt={t.author_name || ""} fill className="object-cover" />
+        </div>
       )}
       {t.media_url && (t.media_type === "video" || t.media_type === "youtube") && (
         <div
           className="relative cursor-pointer group"
           onClick={() => onPlayVideo?.(t.media_url!)}
         >
-          <div className="aspect-video rounded-xl overflow-hidden bg-black/20">
+          <div className="aspect-video rounded-xl overflow-hidden bg-black/20 relative">
             {t.thumbnail_url ? (
-              <img src={t.thumbnail_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <Image src={t.thumbnail_url} alt="" fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-foreground/5" />
             )}
