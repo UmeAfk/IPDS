@@ -1,6 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHash, timingSafeEqual } from "crypto";
 
+// ── Rate limiting (in-memory — resets on server restart) ──────────────────────
+const attempts = new Map<string, { count: number; resetAt: number }>();
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const record = attempts.get(ip);
+  if (record && now < record.resetAt && record.count >= 10) return true;
+  attempts.set(ip, {
+    count: (record && now < record.resetAt ? record.count : 0) + 1,
+    resetAt: now + 15 * 60 * 1000, // 15 minute window
+  });
+  return false;
+}
+
 // ── Secure admin password check ───────────────────────────────────────────────
 //
 //  Set ADMIN_PASSWORD_HASH in Vercel env vars (never store plain text).
@@ -18,7 +32,6 @@ function checkPassword(input: string): boolean {
   const plain = process.env.ADMIN_PASSWORD;
 
   if (hash) {
-    // Compare SHA-256 hashes using timing-safe comparison (prevents timing attacks)
     const inputHash = createHash("sha256").update(input).digest();
     const storedHash = Buffer.from(hash, "hex");
     if (inputHash.length !== storedHash.length) return false;
@@ -26,20 +39,23 @@ function checkPassword(input: string): boolean {
   }
 
   if (plain) {
-    // Plain text fallback — only for local dev, not recommended for production
     const inputBuf  = Buffer.from(input);
     const plainBuf  = Buffer.from(plain);
     if (inputBuf.length !== plainBuf.length) return false;
     return timingSafeEqual(inputBuf, plainBuf);
   }
 
-  // Neither env var set — deny all access and log a warning
   console.warn("⚠️  ADMIN_PASSWORD_HASH not set. Admin panel is locked. Add it to Vercel env vars.");
   return false;
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+    if (isRateLimited(ip)) {
+      return NextResponse.json({ error: "Too many attempts. Try again later." }, { status: 429 });
+    }
+
     const { password } = await req.json();
 
     if (!password || typeof password !== "string") {
@@ -47,7 +63,15 @@ export async function POST(req: NextRequest) {
     }
 
     if (checkPassword(password)) {
-      return NextResponse.json({ ok: true }, { status: 200 });
+      const response = NextResponse.json({ ok: true }, { status: 200 });
+      response.cookies.set("ipds_admin", "1", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        maxAge: 60 * 60 * 8, // 8 hour session
+        path: "/admin",
+      });
+      return response;
     }
 
     // Deliberate delay to slow down brute-force attempts

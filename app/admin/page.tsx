@@ -10,11 +10,12 @@ export default function AdminPage() {
   const [isAuth, setIsAuth] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    if (localStorage.getItem("ipds_admin_session") === "true") {
-      setIsAuth(true);
-    }
+    fetch("/api/admin-check")
+      .then(r => { if (r.ok) setIsAuth(true); })
+      .finally(() => setChecking(false));
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -30,7 +31,6 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        localStorage.setItem("ipds_admin_session", "true");
         setIsAuth(true);
       } else {
         const data = await res.json();
@@ -43,10 +43,18 @@ export default function AdminPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("ipds_admin_session");
+  const handleLogout = async () => {
+    await fetch("/api/admin-logout", { method: "POST" });
     setIsAuth(false);
   };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 size={24} className="animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   if (isAuth) {
     return <AdminDashboard onLogout={handleLogout} />;
