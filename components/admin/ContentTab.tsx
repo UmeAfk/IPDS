@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Trash2, Save, Upload, Check, X } from "lucide-react";
 import { getSiteContent, getAllSiteContent, upsertSiteContent, deleteSiteContent, uploadSiteContentMedia, type SiteContent } from "@/lib/supabase";
@@ -16,11 +16,15 @@ export default function ContentTab() {
   const [transformation, setTransformation] = useState<SiteContent[]>([]);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (msg: string, type: "success" | "error" = "success") => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
   };
+
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const fetchAll = async () => {
     const all = await getAllSiteContent();

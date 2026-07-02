@@ -17,7 +17,7 @@ export default function Achievements() {
   if (!loaded || stats.length === 0) return null;
 
   return (
-    <section id="work" ref={ref} className="section-padding bg-card">
+    <section id="work" ref={ref} className="section-padding bg-card relative z-10">
       <div className="container-custom">
         <p className="eyebrow text-center mb-3">Our Impact</p>
         <h2 className="heading-section text-foreground text-center">By the Numbers</h2>

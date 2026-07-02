@@ -21,8 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <title>IPDS - Architecture | Development | Interiors</title>
-        <meta name="description" content="Pune's premier architecture, redevelopment, and interior design firm. Transforming communities through thoughtful design and quality construction." />
+        <title>IPDS - Self Redevelopment Consultancy | Pune</title>
+        <meta name="description" content="Pune's leading self-redevelopment consultancy. 150+ housing society projects delivered across Maharashtra with full transparency and zero compromise." />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="shortcut icon" href="/favicon.svg" />
         <meta name="theme-color" content="#b8922a" />

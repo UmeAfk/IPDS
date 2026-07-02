@@ -21,6 +21,7 @@ export default function FeaturedProjects() {
   }, []);
 
   const filtered = projects.filter(p => filter === "All" || p.type === filter);
+  const safeIndex = Math.min(index, Math.max(filtered.length - 1, 0));
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -39,8 +40,8 @@ export default function FeaturedProjects() {
   }, [activeIndex]);
 
   return (
-    <section ref={sectionRef} className="relative" style={{ height: `${Math.max(projects.length, 1) * 100}vh` }}>
-      <div className="sticky top-0 h-screen overflow-hidden bg-background">
+    <section ref={sectionRef} className="relative isolate" style={{ height: `${Math.max(projects.length, 1) * 100}vh` }}>
+      <div className="sticky top-0 h-screen overflow-hidden bg-background z-0">
         <div className="container-custom h-full flex flex-col justify-center">
           <div className="mb-8">
             <p className="eyebrow mb-3">Our Portfolio</p>
@@ -68,7 +69,7 @@ export default function FeaturedProjects() {
               <p className="text-muted-foreground py-8">No projects match this filter.</p>
             ) : (
               <>
-                <div className="flex flex-col gap-6 flex-shrink-0">
+                <div className="flex flex-col gap-6 flex-shrink-0 max-h-[60vh] overflow-y-auto scrollbar-hide">
                   {filtered.map((project, i) => {
                     const isActive = i === index;
                     return (
@@ -98,22 +99,22 @@ export default function FeaturedProjects() {
                       className="absolute inset-0"
                     >
                       <Link
-                        href={`/projects/${slugify(filtered[index].title)}`}
+                        href={`/projects/${slugify(filtered[safeIndex].title)}`}
                         className="block w-full h-full relative overflow-hidden group"
                         style={{ borderRadius: "var(--radius)" }}
                       >
                         <img
-                          src={filtered[index].image_url}
-                          alt={filtered[index].title}
+                          src={filtered[safeIndex].image_url}
+                          alt={filtered[safeIndex].title}
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-8">
                           <h3 className="font-display text-3xl text-white mb-2">
-                            {filtered[index].title}
+                            {filtered[safeIndex].title}
                           </h3>
                           <p className="text-white/70 text-sm max-w-xl line-clamp-2">
-                            {filtered[index].description}
+                            {filtered[safeIndex].description}
                           </p>
                           <div className="project-card-arrow opacity-100 mt-4">
                             View project <ArrowUpRight size={14} />

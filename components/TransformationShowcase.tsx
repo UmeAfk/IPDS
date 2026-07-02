@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { getSiteContent, type SiteContent } from "@/lib/supabase";
@@ -45,10 +46,11 @@ export default function TransformationShowcase() {
                 style={{ borderRadius: "var(--radius)" }}
               >
                 <div className="aspect-[4/3] relative">
-                  <img
+                  <Image
                     src={(stage as any).media_url || ""}
                     alt={stage.body || ""}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                 </div>
                 <div className="p-4">

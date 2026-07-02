@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
 import { motion, useInView } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -91,9 +92,11 @@ export default function OngoingProjects() {
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
                 >
-                  <img
+                  <Image
                     src={project.image_url || "/images/JyotiVilla.jpg"}
                     alt={project.title}
+                    fill
+                    className="object-cover"
                   />
                   <div className="project-card-label">
                     <h3>{project.title}</h3>

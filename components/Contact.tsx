@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
 import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import { saveEnquiry } from "@/lib/supabase";
@@ -12,6 +12,9 @@ export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", contact: "", project: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (resetTimer.current) clearTimeout(resetTimer.current); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +23,8 @@ export default function Contact() {
     setLoading(false);
     if (!error) {
       setSubmitted(true);
-      setTimeout(() => {
+      if (resetTimer.current) clearTimeout(resetTimer.current);
+      resetTimer.current = setTimeout(() => {
         setSubmitted(false);
         setForm({ name: "", email: "", contact: "", project: "", message: "" });
       }, 5000);
