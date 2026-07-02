@@ -44,7 +44,7 @@ export default function FeaturedProjects() {
     <section ref={sectionRef} className="relative isolate" style={{ height: `${Math.max(projects.length, 1) * 100}vh` }}>
       <div className="sticky top-0 h-screen overflow-hidden bg-background z-0">
         <div className="container-custom h-full flex flex-col justify-center">
-          <div className="mb-8">
+          <div className="mb-4">
             <p className="eyebrow mb-3">Our Portfolio</p>
             <h2 className="heading-section text-foreground">Key Projects</h2>
             <div className="gold-divider mt-4 mb-6" />
@@ -65,36 +65,38 @@ export default function FeaturedProjects() {
             </div>
           </div>
 
-          <div className="flex gap-6 md:gap-16 items-center flex-1 max-h-[70vh]">
+          <div className="flex gap-6 md:gap-16 items-start flex-1 overflow-hidden" style={{ maxHeight: "calc(100vh - 260px)" }}>
             {filtered.length === 0 ? (
               <p className="text-muted-foreground py-8">No projects match this filter.</p>
             ) : (
               <>
-                <div className="hidden md:flex flex-col items-center flex-shrink-0 relative">
+                <div
+                  className="hidden md:flex flex-col items-center flex-shrink-0 relative"
+                  style={{ height: "calc(100vh - 260px)" }}
+                >
                   <div className="absolute top-0 bottom-0 w-px bg-foreground/15 left-1/2 -translate-x-1/2 z-0" />
-                  {filtered.map((project, i) => {
-                    const isActive = i === index;
-                    return (
-                      <Link
-                        key={project.id}
-                        href={`/projects/${slugify(project.title)}`}
-                        className="relative z-10 flex flex-col items-center"
-                      >
-                        <div
-                          className={`w-14 h-14 rounded-full flex items-center justify-center font-display text-base transition-all duration-500 border ${
-                            isActive
-                              ? "bg-foreground text-background border-foreground scale-110"
-                              : "bg-background text-foreground/50 border-foreground/20 hover:border-foreground/60 hover:text-foreground"
-                          }`}
+                  <div className="relative z-10 flex flex-col items-center justify-between h-full w-full">
+                    {filtered.map((project, i) => {
+                      const isActive = i === safeIndex;
+                      return (
+                        <Link
+                          key={project.id}
+                          href={`/projects/${slugify(project.title)}`}
+                          className="relative z-10"
                         >
-                          {String(i + 1).padStart(2, "0")}
-                        </div>
-                        {i < filtered.length - 1 && (
-                          <div className="h-10" />
-                        )}
-                      </Link>
-                    );
-                  })}
+                          <div
+                            className={`rounded-full flex items-center justify-center font-display transition-all duration-500 border ${
+                              isActive
+                                ? "bg-foreground text-background border-foreground w-12 h-12 text-sm"
+                                : "bg-background text-foreground/40 border-foreground/20 hover:border-foreground/50 hover:text-foreground w-10 h-10 text-xs"
+                            }`}
+                          >
+                            {String(i + 1).padStart(2, "0")}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div className="flex-1 relative h-full">
