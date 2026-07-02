@@ -13,6 +13,8 @@ import Testimonials from "@/components/Testimonials";
 import FontLoader from "@/components/FontLoader";
 import { getProjectsByCategory, getAllSiteContent } from "@/lib/supabase";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const [ongoingProjects, keyProjects, siteContent] = await Promise.all([
     getProjectsByCategory("ongoing"),

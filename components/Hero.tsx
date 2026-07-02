@@ -33,7 +33,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.05 }}
             className="font-mono text-[11px] uppercase tracking-[0.3em] text-white/50 mb-6"
           >
-            Pune's Pioneer in Self-Redevelopment
+            Pune&apos;s Pioneer in Self-Redevelopment
           </motion.p>
           <h1 className="font-display text-white leading-tight"
               style={{ fontSize: "clamp(2.8rem, 6vw, 5.5rem)", fontWeight: 700 }}>
