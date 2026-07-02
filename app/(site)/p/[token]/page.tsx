@@ -1,11 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { getProjectByToken, Project, ProjectAuth } from "@/lib/supabase";
 import ProjectDetail from "@/components/ProjectDetail";
-import LaunchModal from "@/components/LaunchModal";
 
 function useToken() {
   if (typeof window === "undefined") return "";
@@ -19,7 +17,6 @@ export default function PrivateLinkPage() {
   const [project, setProject] = useState<Project | null>(null);
   const [auth,    setAuth]    = useState<ProjectAuth | null>(null);
   const [status,  setStatus]  = useState<"loading"|"not-found"|"granted">("loading");
-  const [launchProject, setLaunchProject] = useState<Project | null>(null);
 
   useEffect(() => {
     if (!token) { setStatus("not-found"); return; }
@@ -40,20 +37,10 @@ export default function PrivateLinkPage() {
       <ProjectDetail
         project={project!}
         onBack={() => {}}
-        onLaunch={p => setLaunchProject(p)}
+        onLaunch={() => {}}
         hideBackButton
         isPrivate
       />
-      <AnimatePresence>
-        {launchProject && (
-          <LaunchModal
-            project={project!}
-            privateToken={auth!.token}
-            clientEmail={auth!.email || ""}
-            onClose={() => setLaunchProject(null)}
-          />
-        )}
-      </AnimatePresence>
     </ThemeProvider>
   );
 }
