@@ -56,14 +56,14 @@ export default function Testimonials() {
 
   if (testimonials.length === 0) return null;
 
-  const doubled = [...testimonials, ...testimonials];
+  const tripled = [...testimonials, ...testimonials, ...testimonials];
 
   return (
     <section className="section-padding bg-background overflow-hidden">
       <div className="container-custom mb-12">
         <p className="eyebrow mb-3">Client Stories</p>
         <h2 className="heading-section text-foreground">What Our Clients Say</h2>
-        <div className="gold-divider mt-4 mb-12" />
+        <div className="gold-divider mt-4 mb-8" />
       </div>
       <div className="overflow-hidden">
         <div
@@ -71,11 +71,12 @@ export default function Testimonials() {
           style={{
             animation: "marquee 40s linear infinite",
             width: "max-content",
+            paddingLeft: 0,
           }}
           onMouseEnter={e => (e.currentTarget.style.animationPlayState = "paused")}
           onMouseLeave={e => (e.currentTarget.style.animationPlayState = "running")}
         >
-          {doubled.map((t, i) => (
+          {tripled.map((t, i) => (
             <TestimonialCard key={`${t.id}-${i}`} t={t} onPlayVideo={setActiveVideo} />
           ))}
         </div>
