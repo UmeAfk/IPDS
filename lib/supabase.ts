@@ -308,7 +308,7 @@ export async function deleteEnquiry(id: string) {
 
 export interface SiteContent {
   id: string;
-  section: "intro" | "testimonial" | "video" | "stats" | "transformation";
+  section: "intro" | "testimonial" | "video" | "stats" | "transformation" | "settings";
   title?: string;
   subtitle?: string;
   body?: string;
@@ -459,4 +459,31 @@ export async function deleteSiteUpdate(projectId: string, mediaUrl: string, exis
   }
   const filtered = existingGallery.filter(u => u.media_url !== mediaUrl);
   return updateProject(projectId, { gallery_updates: filtered });
+}
+
+export async function getSiteFont(): Promise<string> {
+  const { data } = await supabase
+    .from("site_content")
+    .select("body")
+    .eq("section", "settings")
+    .eq("title", "font")
+    .single();
+  return data?.body ?? "Arsenal";
+}
+
+export async function setSiteFont(font: string) {
+  const existing = await supabase
+    .from("site_content")
+    .select("id")
+    .eq("section", "settings")
+    .eq("title", "font")
+    .single();
+
+  if (existing.data?.id) {
+    const { error } = await supabase.from("site_content").update({ body: font }).eq("id", existing.data.id);
+    return { error: error?.message ?? null };
+  } else {
+    const { error } = await supabase.from("site_content").insert([{ section: "settings", title: "font", body: font, sort_order: 0, is_active: true }]);
+    return { error: error?.message ?? null };
+  }
 }

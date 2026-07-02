@@ -6,7 +6,7 @@ import Image from "next/image";
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen overflow-hidden flex flex-col justify-end">
+    <section className="relative min-h-screen overflow-hidden flex flex-col justify-center">
       <Image
         src="/images/ShreeSadhna.jpg"
         alt="Modern architecture"

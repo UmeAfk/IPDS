@@ -1,24 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { AnimatePresence, motion, useInView } from "framer-motion";
 import { ZoomIn, X } from "lucide-react";
-import { getSiteContent, type SiteContent } from "@/lib/supabase";
+import { type SiteContent } from "@/lib/supabase";
 
-export default function TransformationShowcase() {
-  const [items, setItems] = useState<SiteContent[]>([]);
-  const [loaded, setLoaded] = useState(false);
+export default function TransformationShowcase({ items }: { items: SiteContent[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
-  useEffect(() => {
-    getSiteContent("transformation").then(data => { setItems(data); setLoaded(true); });
-  }, []);
-
   const [lightbox, setLightbox] = useState<string | null>(null);
-
-  if (!loaded) return null;
 
   const heading = items.find(i => i.title)?.title || "";
   const stages = items.filter(i => i.body).length > 0 ? items.filter(i => i.body) : [];

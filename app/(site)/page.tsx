@@ -10,20 +10,29 @@ import AboutIntro from "@/components/AboutIntro";
 import ServicesCards from "@/components/ServicesCards";
 import VideoShowcase from "@/components/VideoShowcase";
 import Testimonials from "@/components/Testimonials";
+import FontLoader from "@/components/FontLoader";
+import { getProjectsByCategory, getAllSiteContent } from "@/lib/supabase";
 
-export default function Home() {
+export default async function Home() {
+  const [ongoingProjects, keyProjects, siteContent] = await Promise.all([
+    getProjectsByCategory("ongoing"),
+    getProjectsByCategory("key"),
+    getAllSiteContent(),
+  ]);
+
   return (
     <main>
+      <FontLoader />
       <Navbar />
       <Hero />
-      <AboutIntro />
+      <AboutIntro content={siteContent.filter(c => c.section === "intro")} />
       <ServicesCards />
-      <OngoingProjects />
-      <Achievements />
-      <FeaturedProjects />
-      <TransformationShowcase />
-      <VideoShowcase />
-      <Testimonials />
+      <OngoingProjects projects={ongoingProjects} />
+      <Achievements stats={siteContent.filter(c => c.section === "stats")} />
+      <FeaturedProjects projects={keyProjects} />
+      <TransformationShowcase items={siteContent.filter(c => c.section === "transformation")} />
+      <VideoShowcase videos={siteContent.filter(c => c.section === "video")} />
+      <Testimonials testimonials={siteContent.filter(c => c.section === "testimonial")} />
       <Contact />
       <Footer />
     </main>

@@ -1,25 +1,18 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, useRef } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, useScroll, AnimatePresence, useMotionValueEvent } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
-import { getProjectsByCategory, type Project } from "@/lib/supabase";
+import { type Project } from "@/lib/supabase";
 import { slugify } from "@/lib/slugify";
 
 const FILTERS = ["All", "Residential", "Commercial", "Institutional", "Temple", "Complex"] as const;
 
-export default function FeaturedProjects() {
-  const [projects, setProjects] = useState<Project[]>([]);
+export default function FeaturedProjects({ projects }: { projects: Project[] }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<string>("All");
-
-  useEffect(() => {
-    getProjectsByCategory("key").then(data => {
-      if (data.length > 0) setProjects(data);
-    });
-  }, []);
 
   const filtered = projects.filter(p => filter === "All" || p.type === filter);
 
@@ -28,11 +21,13 @@ export default function FeaturedProjects() {
     offset: ["start start", "end end"],
   });
 
-  const activeIndex = useTransform(scrollYProgress, (v) =>
-    Math.min(Math.floor(v * filtered.length), filtered.length - 1)
-  );
-
   const [index, setIndex] = useState(0);
+
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    const next = Math.min(Math.floor(v * filtered.length), filtered.length - 1);
+    if (next !== index) setIndex(next);
+  });
+
   const safeIndex = Math.min(index, Math.max(filtered.length - 1, 0));
   const circlesRef = useRef<HTMLDivElement>(null);
 
@@ -44,11 +39,6 @@ export default function FeaturedProjects() {
       activeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
     }
   }, [safeIndex]);
-
-  useEffect(() => {
-    const unsub = activeIndex.on("change", (v) => setIndex(v));
-    return () => unsub();
-  }, [activeIndex]);
 
   return (
     <section ref={sectionRef} className="relative isolate" style={{ height: `${Math.max(projects.length, 1) * 100}vh` }}>

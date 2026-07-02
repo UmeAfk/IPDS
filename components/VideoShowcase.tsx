@@ -1,16 +1,7 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { getSiteContent, type SiteContent } from "@/lib/supabase";
+import { type SiteContent } from "@/lib/supabase";
 import { toEmbedUrl } from "@/lib/utils";
 
-export default function VideoShowcase() {
-  const [videos, setVideos] = useState<SiteContent[]>([]);
-
-  useEffect(() => {
-    getSiteContent("video").then(setVideos);
-  }, []);
-
+export default function VideoShowcase({ videos }: { videos: SiteContent[] }) {
   if (videos.length === 0) return null;
 
   return (

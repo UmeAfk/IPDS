@@ -247,12 +247,13 @@
 }
 
 @keyframes kenburns {
-  from { transform: scale(1); }
-  to   { transform: scale(1.06); }
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(0, 0, 0) scale(1.06); }
 }
 
 .animate-ken-burns {
   animation: kenburns 12s ease-out forwards;
+  will-change: transform;
 }
 
 .scrollbar-hide {
@@ -263,7 +264,12 @@
   display: none;
 }
 
+.marquee-track {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
 @keyframes marquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-33.333%); }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-33.333%, 0, 0); }
 }

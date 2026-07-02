@@ -34,7 +34,7 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   experimental: {
-    optimizeCss: false,
+    optimizeCss: true,
   },
 };
 

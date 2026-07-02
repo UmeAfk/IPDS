@@ -3,10 +3,20 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Trash2, Save, Upload, Check, X } from "lucide-react";
-import { getSiteContent, getAllSiteContent, upsertSiteContent, deleteSiteContent, uploadSiteContentMedia, type SiteContent } from "@/lib/supabase";
+import { getSiteContent, getAllSiteContent, upsertSiteContent, deleteSiteContent, uploadSiteContentMedia, getSiteFont, setSiteFont, type SiteContent } from "@/lib/supabase";
+
+const FONTS = [
+  { name: "Arsenal", label: "Arsenal (Default)", style: "'Arsenal', serif" },
+  { name: "Playfair Display", label: "Playfair Display", style: "'Playfair Display', serif" },
+  { name: "DM Serif Display", label: "DM Serif Display", style: "'DM Serif Display', serif" },
+  { name: "Cormorant Garamond", label: "Cormorant Garamond", style: "'Cormorant Garamond', serif" },
+  { name: "Fraunces", label: "Fraunces", style: "'Fraunces', serif" },
+  { name: "Libre Baskerville", label: "Libre Baskerville", style: "'Libre Baskerville', serif" },
+  { name: "Plus Jakarta Sans", label: "Plus Jakarta Sans (Modern)", style: "'Plus Jakarta Sans', sans-serif" },
+];
 
 export default function ContentTab() {
-  const [subtab, setSubtab] = useState<"intro" | "video" | "testimonial" | "stats" | "transformation">("intro");
+  const [subtab, setSubtab] = useState<"intro" | "video" | "testimonial" | "stats" | "transformation" | "font">("intro");
   const [introTitle, setIntroTitle] = useState("");
   const [introText, setIntroText] = useState("");
   const [introId, setIntroId] = useState<string | null>(null);
@@ -14,6 +24,7 @@ export default function ContentTab() {
   const [testimonials, setTestimonials] = useState<SiteContent[]>([]);
   const [stats, setStats] = useState<SiteContent[]>([]);
   const [transformation, setTransformation] = useState<SiteContent[]>([]);
+  const [activeFont, setActiveFont] = useState("Arsenal");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,6 +49,8 @@ export default function ContentTab() {
     setTestimonials(all.filter(c => c.section === "testimonial"));
     setStats(all.filter(c => c.section === "stats"));
     setTransformation(all.filter(c => c.section === "transformation"));
+    const font = all.find(c => c.section === "settings" && c.title === "font");
+    if (font?.body) setActiveFont(font.body);
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -94,6 +107,7 @@ export default function ContentTab() {
     { id: "video" as const, label: "Videos" },
     { id: "testimonial" as const, label: "Testimonials" },
     { id: "transformation" as const, label: "Transformation" },
+    { id: "font" as const, label: "Fonts" },
   ];
 
   return (
@@ -398,6 +412,41 @@ export default function ContentTab() {
           <button onClick={addTestimonial} className="flex items-center gap-2 px-5 py-3 rounded-2xl border border-dashed border-border text-muted-foreground hover:text-foreground text-xs font-bold uppercase tracking-widest">
             <Plus size={14} /> Add Testimonial
           </button>
+        </div>
+      )}
+
+      {subtab === "font" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Choose a display font for the public site. Applied instantly to all headings.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {FONTS.map((font) => (
+              <button
+                key={font.name}
+                onClick={async () => {
+                  await setSiteFont(font.name);
+                  if (font.name === "Arsenal") {
+                    document.documentElement.style.removeProperty("--font-display");
+                  } else {
+                    document.documentElement.style.setProperty("--font-display", font.style);
+                  }
+                  setActiveFont(font.name);
+                  showToast(`Font changed to ${font.label}`);
+                }}
+                className={`p-5 rounded-2xl border text-left transition-all ${
+                  activeFont === font.name
+                    ? "border-accent bg-accent/10"
+                    : "border-border hover:border-foreground/30"
+                }`}
+              >
+                <p style={{ fontFamily: font.style }} className="text-xl mb-1">Aa</p>
+                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
+                  {font.label}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

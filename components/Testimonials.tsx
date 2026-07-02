@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Play } from "lucide-react";
-import { getSiteContent, type SiteContent } from "@/lib/supabase";
+import { type SiteContent } from "@/lib/supabase";
 import { toEmbedUrl } from "@/lib/utils";
 
 function TestimonialCard({ t, onPlayVideo }: { t: SiteContent; onPlayVideo?: (url: string) => void }) {
@@ -46,13 +46,8 @@ function TestimonialCard({ t, onPlayVideo }: { t: SiteContent; onPlayVideo?: (ur
   );
 }
 
-export default function Testimonials() {
-  const [testimonials, setTestimonials] = useState<SiteContent[]>([]);
+export default function Testimonials({ testimonials }: { testimonials: SiteContent[] }) {
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
-
-  useEffect(() => {
-    getSiteContent("testimonial").then(setTestimonials);
-  }, []);
 
   if (testimonials.length === 0) return null;
 
@@ -67,7 +62,7 @@ export default function Testimonials() {
       </div>
       <div className="overflow-hidden">
         <div
-          className="flex gap-6"
+          className="flex gap-6 marquee-track"
           style={{
             animation: "marquee 40s linear infinite",
             width: "max-content",

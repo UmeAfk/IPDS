@@ -1,15 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, useInView } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getProjectsByCategory, type Project } from "@/lib/supabase";
+import { type Project } from "@/lib/supabase";
 
 const FILTERS = ["All", "Residential", "Commercial", "Institutional", "Temple", "Complex"] as const;
 
-export default function OngoingProjects() {
-  const [projects, setProjects] = useState<Project[]>([]);
+export default function OngoingProjects({ projects }: { projects: Project[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
@@ -26,10 +25,6 @@ export default function OngoingProjects() {
   };
 
   const filtered = projects.filter(p => filter === "All" || p.type === filter);
-
-  useEffect(() => {
-    getProjectsByCategory("ongoing").then(setProjects);
-  }, []);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -77,7 +72,7 @@ export default function OngoingProjects() {
                   key={project.id}
                   initial={{ opacity: 0 }}
                   animate={inView ? { opacity: 1 } : {}}
-                  transition={{ duration: 0.6, delay: Math.min(idx * 0.08, 0.4) }}
+                  transition={{ duration: 0.35, delay: Math.min(idx * 0.04, 0.2) }}
                   className="project-card"
                   style={{
                     flex:

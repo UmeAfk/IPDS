@@ -1,20 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { getSiteContent, type SiteContent } from "@/lib/supabase";
+import { type SiteContent } from "@/lib/supabase";
 
-export default function Achievements() {
-  const [stats, setStats] = useState<SiteContent[]>([]);
-  const [loaded, setLoaded] = useState(false);
+export default function Achievements({ stats }: { stats: SiteContent[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
 
-  useEffect(() => {
-    getSiteContent("stats").then(data => { setStats(data); setLoaded(true); });
-  }, []);
-
-  if (!loaded || stats.length === 0) return null;
+  if (stats.length === 0) return null;
 
   return (
     <section id="work" ref={ref} className="section-padding bg-card relative z-10">
