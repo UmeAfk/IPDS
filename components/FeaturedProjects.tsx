@@ -84,7 +84,7 @@ export default function FeaturedProjects() {
                   className="hidden md:flex flex-col items-center flex-shrink-0 relative"
                   style={{ height: "calc(100vh - 260px)" }}
                 >
-                  <div className="absolute w-px bg-foreground/15 left-1/2 -translate-x-1/2 z-0" style={{ top: "28px", bottom: "28px" }} />
+                  <div className="absolute w-px bg-foreground/15 left-1/2 -translate-x-1/2 z-0" style={{ top: "24px", bottom: "28px" }} />
                   <div ref={circlesRef} className="relative z-10 flex flex-col items-center gap-5 overflow-y-auto scrollbar-hide h-full py-2 w-14">
                     {filtered.map((project, i) => {
                       const isActive = i === safeIndex;

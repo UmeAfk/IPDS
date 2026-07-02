@@ -29,7 +29,7 @@ export default function TransformationShowcase() {
         </h2>
         <div className="gold-divider mt-4 mb-12 mx-auto" />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
           {stages.map((stage, idx) => {
             const MotionDiv = inView ? motion.div : "div";
             const motionProps = inView
@@ -40,12 +40,12 @@ export default function TransformationShowcase() {
                 }
               : {};
             return (
-            <MotionDiv key={idx} {...motionProps}>
+            <MotionDiv key={idx} {...motionProps} className="h-full">
               <div
-                className="overflow-hidden bg-muted border border-border hover:border-accent/30 transition-all duration-250"
+                className="overflow-hidden bg-muted border border-border hover:border-accent/30 transition-all duration-250 flex flex-col h-full"
                 style={{ borderRadius: "var(--radius)" }}
               >
-                <div className="aspect-[4/3] relative">
+                <div className="relative h-64">
                   <Image
                     src={(stage as any).media_url || ""}
                     alt={stage.body || ""}
