@@ -3,16 +3,39 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Trash2, Save, Upload, Check, X } from "lucide-react";
-import { getSiteContent, getAllSiteContent, upsertSiteContent, deleteSiteContent, uploadSiteContentMedia, getSiteFont, setSiteFont, type SiteContent } from "@/lib/supabase";
+import { getSiteContent, getAllSiteContent, upsertSiteContent, deleteSiteContent, uploadSiteContentMedia, setSiteFont, type SiteContent } from "@/lib/supabase";
 
-const FONTS = [
+const DISPLAY_FONTS = [
   { name: "Arsenal", label: "Arsenal (Default)", style: "'Arsenal', serif" },
   { name: "Playfair Display", label: "Playfair Display", style: "'Playfair Display', serif" },
   { name: "DM Serif Display", label: "DM Serif Display", style: "'DM Serif Display', serif" },
   { name: "Cormorant Garamond", label: "Cormorant Garamond", style: "'Cormorant Garamond', serif" },
   { name: "Fraunces", label: "Fraunces", style: "'Fraunces', serif" },
   { name: "Libre Baskerville", label: "Libre Baskerville", style: "'Libre Baskerville', serif" },
-  { name: "Plus Jakarta Sans", label: "Plus Jakarta Sans (Modern)", style: "'Plus Jakarta Sans', sans-serif" },
+  { name: "Plus Jakarta Sans", label: "Plus Jakarta Sans", style: "'Plus Jakarta Sans', sans-serif" },
+  { name: "Cinzel", label: "Cinzel", style: "'Cinzel', serif" },
+];
+
+const BODY_FONTS = [
+  { name: "Rubik", label: "Rubik (Default)", style: "'Rubik', sans-serif" },
+  { name: "Inter", label: "Inter", style: "'Inter', sans-serif" },
+  { name: "Lora", label: "Lora", style: "'Lora', serif" },
+  { name: "Merriweather", label: "Merriweather", style: "'Merriweather', serif" },
+  { name: "Open Sans", label: "Open Sans", style: "'Open Sans', sans-serif" },
+  { name: "Source Sans 3", label: "Source Sans 3", style: "'Source Sans 3', sans-serif" },
+  { name: "Work Sans", label: "Work Sans", style: "'Work Sans', sans-serif" },
+  { name: "Nunito", label: "Nunito", style: "'Nunito', sans-serif" },
+];
+
+const MONO_FONTS = [
+  { name: "monospace", label: "System Mono (Default)", style: "monospace" },
+  { name: "JetBrains Mono", label: "JetBrains Mono", style: "'JetBrains Mono', monospace" },
+  { name: "Fira Code", label: "Fira Code", style: "'Fira Code', monospace" },
+  { name: "IBM Plex Mono", label: "IBM Plex Mono", style: "'IBM Plex Mono', monospace" },
+  { name: "Space Mono", label: "Space Mono", style: "'Space Mono', monospace" },
+  { name: "Source Code Pro", label: "Source Code Pro", style: "'Source Code Pro', monospace" },
+  { name: "Roboto Mono", label: "Roboto Mono", style: "'Roboto Mono', monospace" },
+  { name: "Courier Prime", label: "Courier Prime", style: "'Courier Prime', monospace" },
 ];
 
 export default function ContentTab() {
@@ -24,7 +47,10 @@ export default function ContentTab() {
   const [testimonials, setTestimonials] = useState<SiteContent[]>([]);
   const [stats, setStats] = useState<SiteContent[]>([]);
   const [transformation, setTransformation] = useState<SiteContent[]>([]);
-  const [activeFont, setActiveFont] = useState("Arsenal");
+  const [displayFont, setDisplayFont] = useState("Arsenal");
+  const [bodyFont, setBodyFont] = useState("Rubik");
+  const [monoFont, setMonoFont] = useState("monospace");
+  const [fontTab, setFontTab] = useState<"display" | "body" | "mono">("display");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,8 +75,12 @@ export default function ContentTab() {
     setTestimonials(all.filter(c => c.section === "testimonial"));
     setStats(all.filter(c => c.section === "stats"));
     setTransformation(all.filter(c => c.section === "transformation"));
-    const font = all.find(c => c.section === "settings" && c.title === "font");
-    if (font?.body) setActiveFont(font.body);
+    const dFont = all.find(c => c.section === "settings" && c.title === "font_display");
+    if (dFont?.body) setDisplayFont(dFont.body);
+    const bFont = all.find(c => c.section === "settings" && c.title === "font_body");
+    if (bFont?.body) setBodyFont(bFont.body);
+    const mFont = all.find(c => c.section === "settings" && c.title === "font_mono");
+    if (mFont?.body) setMonoFont(mFont.body);
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -416,37 +446,151 @@ export default function ContentTab() {
       )}
 
       {subtab === "font" && (
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Choose a display font for the public site. Applied instantly to all headings.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {FONTS.map((font) => (
+        <div className="space-y-6">
+          <div className="flex gap-2">
+            {(["display", "body", "mono"] as const).map((t) => (
               <button
-                key={font.name}
-                onClick={async () => {
-                  await setSiteFont(font.name);
-                  if (font.name === "Arsenal") {
-                    document.documentElement.style.removeProperty("--font-display");
-                  } else {
-                    document.documentElement.style.setProperty("--font-display", font.style);
-                  }
-                  setActiveFont(font.name);
-                  showToast(`Font changed to ${font.label}`);
-                }}
-                className={`p-5 rounded-2xl border text-left transition-all ${
-                  activeFont === font.name
-                    ? "border-accent bg-accent/10"
-                    : "border-border hover:border-foreground/30"
+                key={t}
+                onClick={() => setFontTab(t)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                  fontTab === t
+                    ? "bg-foreground text-background"
+                    : "bg-secondary/30 border border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <p style={{ fontFamily: font.style }} className="text-xl mb-1">Aa</p>
-                <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">
-                  {font.label}
-                </p>
+                {t === "display" ? "Display" : t === "body" ? "Body" : "Mono"}
               </button>
             ))}
           </div>
+
+          {fontTab === "display" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Headings, hero titles, section headers.</p>
+              <div className="bg-card border border-border p-6 rounded-2xl">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Live Preview</p>
+                <p style={{ fontFamily: displayFont === "Arsenal" ? "var(--font-display)" : DISPLAY_FONTS.find(f => f.name === displayFont)?.style }} className="text-4xl">
+                  The quick brown fox
+                </p>
+                <p style={{ fontFamily: displayFont === "Arsenal" ? "var(--font-display)" : DISPLAY_FONTS.find(f => f.name === displayFont)?.style }} className="text-xl text-muted-foreground mt-1">
+                  ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {DISPLAY_FONTS.map((font) => {
+                  const isActive = displayFont === font.name;
+                  return (
+                    <button
+                      key={font.name}
+                      onClick={async () => {
+                        await setSiteFont("display", font.name);
+                        if (font.name === "Arsenal") {
+                          document.documentElement.style.removeProperty("--font-display");
+                        } else {
+                          document.documentElement.style.setProperty("--font-display", font.style);
+                        }
+                        setDisplayFont(font.name);
+                        showToast(`Display → ${font.label}`);
+                      }}
+                      className={`p-4 rounded-2xl border text-left transition-all ${
+                        isActive ? "border-accent bg-accent/10 ring-1 ring-accent/30" : "border-border hover:border-foreground/30"
+                      }`}
+                    >
+                      <p style={{ fontFamily: font.style }} className="text-xl mb-1">Aa</p>
+                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest leading-tight">
+                        {font.label}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {fontTab === "body" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Paragraphs, buttons, navigation, form fields.</p>
+              <div className="bg-card border border-border p-6 rounded-2xl">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Live Preview</p>
+                <p style={{ fontFamily: bodyFont === "Rubik" ? "var(--font-body)" : BODY_FONTS.find(f => f.name === bodyFont)?.style }} className="text-base leading-relaxed">
+                  The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs. How vexingly quick daft zebras jump!
+                </p>
+                <p style={{ fontFamily: bodyFont === "Rubik" ? "var(--font-body)" : BODY_FONTS.find(f => f.name === bodyFont)?.style, fontWeight: 500 }} className="text-sm mt-2">
+                  ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {BODY_FONTS.map((font) => {
+                  const isActive = bodyFont === font.name;
+                  return (
+                    <button
+                      key={font.name}
+                      onClick={async () => {
+                        await setSiteFont("body", font.name);
+                        if (font.name === "Rubik") {
+                          document.documentElement.style.removeProperty("--font-body");
+                        } else {
+                          document.documentElement.style.setProperty("--font-body", font.style);
+                        }
+                        setBodyFont(font.name);
+                        showToast(`Body → ${font.label}`);
+                      }}
+                      className={`p-4 rounded-2xl border text-left transition-all ${
+                        isActive ? "border-accent bg-accent/10 ring-1 ring-accent/30" : "border-border hover:border-foreground/30"
+                      }`}
+                    >
+                      <p style={{ fontFamily: font.style }} className="text-base mb-1">Ag</p>
+                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest leading-tight">
+                        {font.label}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {fontTab === "mono" && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Labels, tags, admin chrome, code-like UI.</p>
+              <div className="bg-card border border-border p-6 rounded-2xl">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1">Live Preview</p>
+                <p style={{ fontFamily: monoFont === "monospace" ? "monospace" : MONO_FONTS.find(f => f.name === monoFont)?.style }} className="text-sm">
+                  The quick brown fox jumps over the lazy dog.
+                </p>
+                <p style={{ fontFamily: monoFont === "monospace" ? "monospace" : MONO_FONTS.find(f => f.name === monoFont)?.style }} className="text-xs text-muted-foreground mt-1">
+                  ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789
+                </p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {MONO_FONTS.map((font) => {
+                  const isActive = monoFont === font.name;
+                  return (
+                    <button
+                      key={font.name}
+                      onClick={async () => {
+                        await setSiteFont("mono", font.name);
+                        if (font.name === "monospace") {
+                          document.documentElement.style.removeProperty("--font-mono");
+                        } else {
+                          document.documentElement.style.setProperty("--font-mono", font.style);
+                        }
+                        setMonoFont(font.name);
+                        showToast(`Mono → ${font.label}`);
+                      }}
+                      className={`p-4 rounded-2xl border text-left transition-all ${
+                        isActive ? "border-accent bg-accent/10 ring-1 ring-accent/30" : "border-border hover:border-foreground/30"
+                      }`}
+                    >
+                      <p style={{ fontFamily: font.style }} className="text-sm mb-1">&gt;_</p>
+                      <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest leading-tight">
+                        {font.label}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

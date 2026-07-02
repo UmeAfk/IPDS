@@ -25,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
           id="google-fonts-link"
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Serif+Display&family=Cormorant+Garamond:wght@400;600;700&family=Fraunces:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Serif+Display&family=Cormorant+Garamond:wght@400;600;700&family=Fraunces:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700&family=Cinzel:wght@400;700&family=Inter:wght@400;500;700&family=Lora:wght@400;700&family=Merriweather:wght@400;700&family=Open+Sans:wght@400;700&family=Source+Sans+3:wght@400;700&family=Work+Sans:wght@400;700&family=Nunito:wght@400;700&family=JetBrains+Mono:wght@400;700&family=Fira+Code:wght@400;700&family=IBM+Plex+Mono:wght@400;700&family=Space+Mono:wght@400;700&family=Source+Code+Pro:wght@400;700&family=Roboto+Mono:wght@400;700&family=Courier+Prime:wght@400;700&family=Inconsolata:wght@400;700&display=swap"
           rel="stylesheet"
         />
         <title>IPDS - Self Redevelopment Consultancy | Pune</title>

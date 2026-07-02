@@ -461,29 +461,35 @@ export async function deleteSiteUpdate(projectId: string, mediaUrl: string, exis
   return updateProject(projectId, { gallery_updates: filtered });
 }
 
-export async function getSiteFont(): Promise<string> {
+export async function getSiteFont(type: "display" | "body" | "mono" = "display"): Promise<string> {
+  const defaults: Record<string, string> = {
+    display: "Arsenal",
+    body: "Rubik",
+    mono: "monospace",
+  };
   const { data } = await supabase
     .from("site_content")
     .select("body")
     .eq("section", "settings")
-    .eq("title", "font")
+    .eq("title", `font_${type}`)
     .single();
-  return data?.body ?? "Arsenal";
+  return data?.body ?? defaults[type];
 }
 
-export async function setSiteFont(font: string) {
+export async function setSiteFont(type: "display" | "body" | "mono", font: string) {
+  const title = `font_${type}`;
   const existing = await supabase
     .from("site_content")
     .select("id")
     .eq("section", "settings")
-    .eq("title", "font")
+    .eq("title", title)
     .single();
 
   if (existing.data?.id) {
     const { error } = await supabase.from("site_content").update({ body: font }).eq("id", existing.data.id);
     return { error: error?.message ?? null };
   } else {
-    const { error } = await supabase.from("site_content").insert([{ section: "settings", title: "font", body: font, sort_order: 0, is_active: true }]);
+    const { error } = await supabase.from("site_content").insert([{ section: "settings", title, body: font, sort_order: 0, is_active: true }]);
     return { error: error?.message ?? null };
   }
 }
