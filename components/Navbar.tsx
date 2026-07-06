@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import ThemeToggle from "./ThemeToggle";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -53,6 +54,7 @@ export default function Navbar() {
                 {label}
               </a>
             ))}
+            <ThemeToggle />
             <button
               className="btn-primary py-2.5 px-5"
               onClick={() => document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" })}
@@ -62,14 +64,17 @@ export default function Navbar() {
             </button>
           </div>
 
-          <button
-            className={`md:hidden p-2 transition-colors ${
-              scrolled ? "text-foreground" : "text-white"
-            }`}
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+          <div className="flex items-center gap-4 md:hidden">
+            <ThemeToggle />
+            <button
+              className={`transition-colors ${
+                scrolled ? "text-foreground" : "text-white"
+              }`}
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -79,7 +84,7 @@ export default function Navbar() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-white flex flex-col items-center justify-center gap-8 md:hidden"
+            className="fixed inset-0 z-40 bg-background flex flex-col items-center justify-center gap-8 md:hidden"
           >
             {navLinks.map(({ label, href }) => (
               <a

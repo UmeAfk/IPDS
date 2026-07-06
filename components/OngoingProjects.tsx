@@ -5,6 +5,8 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, useInView } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type Project } from "@/lib/supabase";
+import { slugify } from "@/lib/slugify";
+import { useRouter } from "next/navigation";
 
 const FILTERS = ["All", "Residential", "Commercial", "Institutional", "Temple", "Complex"] as const;
 
@@ -12,6 +14,7 @@ export default function OngoingProjects({ projects, pipelineText }: { projects: 
   const ref = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
+  const router = useRouter();
   const [filter, setFilter] = useState<string>("All");
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -86,12 +89,13 @@ export default function OngoingProjects({ projects, pipelineText }: { projects: 
                           : 1,
                     minWidth: "80px",
                     maxWidth: hoveredIdx === idx ? "600px" : undefined,
+                    cursor: "pointer",
                   }}
                   onMouseEnter={() => setHoveredIdx(idx)}
                   onMouseLeave={() => setHoveredIdx(null)}
-                >
+                  onClick={() => router.push(`/projects/${slugify(project.title)}`)}>
                   <Image
-                    src={project.image_url || "/images/JyotiVilla.jpg"}
+                    src={project.image_url || ""}
                     alt={project.title}
                     fill
                     className="object-cover"

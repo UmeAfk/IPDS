@@ -672,12 +672,14 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
                           <button
                             onClick={() => { haptic(); setEditingProject({} as any); }}
-                            className="bevel-card p-8 bg-card border-2 border-dashed border-border/50 rounded-[2rem] flex flex-col items-center justify-center text-center hover:border-brand-accent/30 transition-all group"
+                            className="bevel-card p-8 bg-card border border-border rounded-[2rem] flex flex-col items-center justify-between text-center hover:border-brand-accent/30 transition-all group relative overflow-hidden min-h-[400px]"
                           >
-                            <div className="w-12 h-12 rounded-2xl bg-background border border-border flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                              <Plus size={24} className="text-brand-accent" />
+                            <div className="flex-1 flex flex-col items-center justify-center w-full">
+                              <div className="w-12 h-12 rounded-2xl bg-background border border-border flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <Plus size={24} className="text-brand-accent" />
+                              </div>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Add New Project</p>
                             </div>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Add New Project</p>
                           </button>
                         </div>
                       )}

@@ -153,7 +153,11 @@ The ArchViz Studio Team`);
             <button 
               onClick={sendEmails}
               disabled={sending || !recipients.length || (target === "project" && !selProject)}
-              className="flex-1 btn-vercel h-10 px-8 text-sm disabled:opacity-40 disabled:hover:bg-primary"
+              className={`flex-1 h-10 px-8 text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                sending || !recipients.length || (target === "project" && !selProject)
+                  ? "rounded-xl border border-border text-muted-foreground bg-secondary/50 cursor-not-allowed"
+                  : "btn-vercel"
+              }`}
             >
               {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
               {sending ? "Sending..." : `Send to ${recipients.length} Recipient${recipients.length !== 1 ? "s" : ""}`}
@@ -164,8 +168,7 @@ The ArchViz Studio Team`);
         {/* Preview Panel */}
         <div className="space-y-4">
           <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live Preview</label>
-          <div className="bevel-card p-6 bg-secondary/20 relative min-h-[400px]">
-            <div className="absolute top-4 right-4 text-[10px] font-bold text-brand-accent/50 uppercase tracking-widest">Preview Mode</div>
+          <div className="bevel-card p-8 bg-card relative min-h-[400px]">
             <div className="space-y-4">
               <div>
                 <span className="text-[10px] font-bold text-muted-foreground uppercase mr-2">Subject:</span>

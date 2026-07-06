@@ -1,5 +1,6 @@
 import { Arsenal, Rubik } from "next/font/google";
 import { Toaster } from "@/components/ui/Toaster";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import { getAllSiteContent } from "@/lib/supabase";
 import "@/styles/globals.css";
 
@@ -40,8 +41,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="theme-color" content="#b8922a" />
       </head>
       <body className={`${display.variable} ${body.variable} antialiased`}>
-        {children}
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
