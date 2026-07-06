@@ -62,7 +62,7 @@ export default function TransformationShowcase({ items }: { items: SiteContent[]
                   <p className="text-xs font-mono uppercase tracking-widest text-accent mb-1">
                     Stage {idx + 1}
                   </p>
-                  <p className="heading-card text-foreground">{stage.body}</p>
+                  <p className="heading-card text-foreground line-clamp-2">{stage.body}</p>
                 </div>
               </div>
               </MotionDiv>

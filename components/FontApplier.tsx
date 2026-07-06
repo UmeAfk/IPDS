@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { getSiteFont } from "@/lib/supabase";
+import { type SiteContent } from "@/lib/supabase";
 
 const FONT_STACKS: Record<string, string> = {
   "Playfair Display": "'Playfair Display', serif",
@@ -28,23 +28,21 @@ const FONT_STACKS: Record<string, string> = {
   "Inconsolata": "'Inconsolata', monospace",
 };
 
-export default function FontLoader() {
+export default function FontApplier({ settings }: { settings: SiteContent[] }) {
   useEffect(() => {
-    Promise.all([
-      getSiteFont("display"),
-      getSiteFont("body"),
-      getSiteFont("mono"),
-    ]).then(([displayFont, bodyFont, monoFont]) => {
-      if (displayFont && displayFont !== "Arsenal" && FONT_STACKS[displayFont]) {
-        document.documentElement.style.setProperty("--font-display", FONT_STACKS[displayFont]);
-      }
-      if (bodyFont && bodyFont !== "Rubik" && FONT_STACKS[bodyFont]) {
-        document.documentElement.style.setProperty("--font-body", FONT_STACKS[bodyFont]);
-      }
-      if (monoFont && monoFont !== "monospace" && FONT_STACKS[monoFont]) {
-        document.documentElement.style.setProperty("--font-mono", FONT_STACKS[monoFont]);
-      }
-    });
-  }, []);
+    const displayFont = settings.find(s => s.title === "font_display")?.body;
+    const bodyFont = settings.find(s => s.title === "font_body")?.body;
+    const monoFont = settings.find(s => s.title === "font_mono")?.body;
+
+    if (displayFont && displayFont !== "Arsenal" && FONT_STACKS[displayFont]) {
+      document.documentElement.style.setProperty("--font-display", FONT_STACKS[displayFont]);
+    }
+    if (bodyFont && bodyFont !== "Rubik" && FONT_STACKS[bodyFont]) {
+      document.documentElement.style.setProperty("--font-body", FONT_STACKS[bodyFont]);
+    }
+    if (monoFont && monoFont !== "monospace" && FONT_STACKS[monoFont]) {
+      document.documentElement.style.setProperty("--font-mono", FONT_STACKS[monoFont]);
+    }
+  }, [settings]);
   return null;
 }

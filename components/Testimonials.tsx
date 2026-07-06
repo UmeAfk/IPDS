@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Play } from "lucide-react";
 import { type SiteContent } from "@/lib/supabase";
@@ -9,7 +9,7 @@ import { toEmbedUrl } from "@/lib/utils";
 
 function TestimonialCard({ t, onPlayVideo }: { t: SiteContent; onPlayVideo?: (url: string) => void }) {
   return (
-    <div className="bg-card border border-border p-8 rounded-2xl flex flex-col gap-6 min-w-[320px] max-w-[400px]">
+    <div className="bg-card border border-border p-8 rounded-2xl flex flex-col gap-6 min-w-[320px] max-w-[400px] overflow-hidden break-words">
       {t.media_url && t.media_type === "image" && (
         <div className="relative h-40 rounded-xl overflow-hidden">
           <Image src={t.media_url} alt={t.author_name || ""} fill className="object-cover" />
@@ -48,6 +48,17 @@ function TestimonialCard({ t, onPlayVideo }: { t: SiteContent; onPlayVideo?: (ur
 
 export default function Testimonials({ testimonials }: { testimonials: SiteContent[] }) {
   const [activeVideo, setActiveVideo] = useState<string | null>(null);
+  const marqueeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = marqueeRef.current;
+    if (!el) return;
+    const onVisibility = () => {
+      el.style.animationPlayState = document.hidden ? "paused" : "running";
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, []);
 
   if (testimonials.length === 0) return null;
 
@@ -62,6 +73,7 @@ export default function Testimonials({ testimonials }: { testimonials: SiteConte
       </div>
       <div className="overflow-hidden">
         <div
+          ref={marqueeRef}
           className="flex gap-6 marquee-track"
           style={{
             animation: "marquee 40s linear infinite",

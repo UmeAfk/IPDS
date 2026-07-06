@@ -39,7 +39,7 @@ const MONO_FONTS = [
 ];
 
 export default function ContentTab() {
-  const [subtab, setSubtab] = useState<"intro" | "video" | "testimonial" | "stats" | "transformation" | "font">("intro");
+  const [subtab, setSubtab] = useState<"intro" | "video" | "testimonial" | "stats" | "transformation" | "font" | "hero" | "contact">("intro");
   const [introTitle, setIntroTitle] = useState("");
   const [introText, setIntroText] = useState("");
   const [introId, setIntroId] = useState<string | null>(null);
@@ -50,6 +50,10 @@ export default function ContentTab() {
   const [displayFont, setDisplayFont] = useState("Arsenal");
   const [bodyFont, setBodyFont] = useState("Rubik");
   const [monoFont, setMonoFont] = useState("monospace");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactAddress, setContactAddress] = useState("");
   const [fontTab, setFontTab] = useState<"display" | "body" | "mono">("display");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -81,6 +85,14 @@ export default function ContentTab() {
     if (bFont?.body) setBodyFont(bFont.body);
     const mFont = all.find(c => c.section === "settings" && c.title === "font_mono");
     if (mFont?.body) setMonoFont(mFont.body);
+    const hero = all.find(c => c.section === "settings" && c.title === "hero_image");
+    if (hero?.body) setHeroImageUrl(hero.body);
+    const cEmail = all.find(c => c.section === "contact" && c.title === "email");
+    if (cEmail?.body) setContactEmail(cEmail.body);
+    const cPhone = all.find(c => c.section === "contact" && c.title === "phone");
+    if (cPhone?.body) setContactPhone(cPhone.body);
+    const cAddr = all.find(c => c.section === "contact" && c.title === "address");
+    if (cAddr?.body) setContactAddress(cAddr.body);
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -137,7 +149,9 @@ export default function ContentTab() {
     { id: "video" as const, label: "Videos" },
     { id: "testimonial" as const, label: "Testimonials" },
     { id: "transformation" as const, label: "Transformation" },
+    { id: "hero" as const, label: "Hero" },
     { id: "font" as const, label: "Fonts" },
+    { id: "contact" as const, label: "Contact" },
   ];
 
   return (
@@ -269,7 +283,7 @@ export default function ContentTab() {
                     />
                   </label>
                   {v.media_url && (
-                    <span className="text-[10px] text-accent truncate max-w-[200px]">{v.media_url}</span>
+                    <span className="text-[10px] text-accent truncate max-w-[200px]" title={v.media_url}>{v.media_url}</span>
                   )}
                 </div>
               </div>
@@ -458,7 +472,7 @@ export default function ContentTab() {
                     : "bg-secondary/30 border border-border text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {t === "display" ? "Display" : t === "body" ? "Body" : "Mono"}
+                {t === "display" ? "Display" : t === "body" ? "Body" : t === "mono" ? "Mono" : "Hero"}
               </button>
             ))}
           </div>
@@ -591,6 +605,134 @@ export default function ContentTab() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {subtab === "hero" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Set the hero background image. Leave empty for a solid gradient fallback.
+          </p>
+          <div className="bg-card border border-border p-6 rounded-2xl space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Image URL</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={heroImageUrl}
+                  onChange={e => setHeroImageUrl(e.target.value)}
+                  placeholder="/images/ShreeSadhna.jpg"
+                  className="flex-1 px-4 py-3 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-3 rounded-xl bg-secondary/30 border border-border text-xs font-bold uppercase tracking-widest hover:bg-secondary transition-all shrink-0">
+                  <Upload size={14} />
+                  {saving ? "..." : "Upload"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setSaving(true);
+                      const { url, error } = await uploadSiteContentMedia(file, "hero");
+                      if (error) {
+                        showToast("Upload failed. Check file size.", "error");
+                      } else {
+                        setHeroImageUrl(url);
+                        showToast("Image uploaded");
+                      }
+                      setSaving(false);
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+            {heroImageUrl && (
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={heroImageUrl}
+                  alt="Hero preview"
+                  className="w-full h-full object-cover"
+                  onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                />
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                const { error } = await upsertSiteContent({
+                  section: "settings",
+                  title: "hero_image",
+                  body: heroImageUrl,
+                  sort_order: 10,
+                  is_active: true,
+                });
+                if (error) showToast("Failed to save hero image", "error");
+                else showToast("Hero image saved");
+                fetchAll();
+              }}
+              disabled={saving}
+              className="btn-primary w-full"
+            >
+              <Save size={14} /> Save
+            </button>
+          </div>
+        </div>
+      )}
+
+      {subtab === "contact" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Edit the contact details shown on the site.
+          </p>
+          <div className="bg-card border border-border p-6 rounded-2xl space-y-4">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Email</label>
+              <input
+                type="email"
+                value={contactEmail}
+                onChange={e => setContactEmail(e.target.value)}
+                placeholder="admin@i-pds.com"
+                className="w-full px-4 py-3 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Phone</label>
+              <input
+                type="text"
+                value={contactPhone}
+                onChange={e => setContactPhone(e.target.value)}
+                placeholder="020-66268888"
+                className="w-full px-4 py-3 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Address</label>
+              <input
+                type="text"
+                value={contactAddress}
+                onChange={e => setContactAddress(e.target.value)}
+                placeholder="Pune, Maharashtra"
+                className="w-full px-4 py-3 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+            </div>
+            <button
+              onClick={async () => {
+                await Promise.all([
+                  upsertSiteContent({ section: "contact", title: "email", body: contactEmail, sort_order: 0, is_active: true }),
+                  upsertSiteContent({ section: "contact", title: "phone", body: contactPhone, sort_order: 1, is_active: true }),
+                  upsertSiteContent({ section: "contact", title: "address", body: contactAddress, sort_order: 2, is_active: true }),
+                ]);
+                showToast("Contact details saved");
+                fetchAll();
+              }}
+              disabled={saving}
+              className="btn-primary w-full"
+            >
+              <Save size={14} /> Save All
+            </button>
+          </div>
         </div>
       )}
 

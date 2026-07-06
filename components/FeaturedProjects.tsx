@@ -46,7 +46,7 @@ export default function FeaturedProjects({ projects }: { projects: Project[] }) 
   }, [safeIndex]);
 
   return (
-    <section ref={sectionRef} className="relative isolate" style={{ height: `${Math.max(projects.length, 1) * 100}vh` }}>
+    <section ref={sectionRef} className="relative isolate" style={{ height: `${Math.max(filtered.length, 1) * 100}vh` }}>
       <div className="sticky top-0 h-screen overflow-hidden bg-background z-0">
         <div className="container-custom h-full flex flex-col justify-center">
           <div className="mb-4">

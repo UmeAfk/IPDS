@@ -4,23 +4,27 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Image from "next/image";
 
-export default function Hero() {
+export default function Hero({ imageUrl }: { imageUrl?: string }) {
   return (
     <section className="relative min-h-screen overflow-hidden flex flex-col justify-center">
-      <Image
-        src="/images/ShreeSadhna.jpg"
-        alt="Modern architecture"
-        fill
-        priority
-        className="object-cover animate-ken-burns"
-      />
+      {imageUrl ? (
+        <Image
+          src={imageUrl}
+          alt="Modern architecture"
+          fill
+          priority
+          className="object-cover animate-ken-burns"
+        />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-stone-900 via-stone-800 to-stone-950" />
+      )}
       <div
         className="absolute inset-0"
         style={{
           background: "linear-gradient(to top, rgba(10,8,5,0.88) 0%, rgba(10,8,5,0.45) 50%, rgba(10,8,5,0.15) 100%)",
         }}
       />
-      <div className="relative z-10 container-custom pb-20 md:pb-28">
+      <div className="relative z-10 container-custom">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}

@@ -13,7 +13,7 @@ export default function AboutIntro({ content }: { content: SiteContent[] }) {
         </h2>
         <div className="gold-divider mt-4 mb-8" />
         {item.body && (
-          <p className="body-text leading-relaxed text-muted-foreground text-lg">
+          <p className="body-text leading-relaxed text-muted-foreground text-lg max-w-3xl overflow-hidden">
             {item.body}
           </p>
         )}

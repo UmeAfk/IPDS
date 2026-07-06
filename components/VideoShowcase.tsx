@@ -22,7 +22,7 @@ export default function VideoShowcase({ videos }: { videos: SiteContent[] }) {
                 />
               </div>
               <div className="p-4">
-                <p className="font-display text-foreground">{v.title}</p>
+                <p className="font-display text-foreground line-clamp-2">{v.title}</p>
               </div>
             </div>
           ))}

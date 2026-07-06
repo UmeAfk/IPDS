@@ -308,7 +308,7 @@ export async function deleteEnquiry(id: string) {
 
 export interface SiteContent {
   id: string;
-  section: "intro" | "testimonial" | "video" | "stats" | "transformation" | "settings";
+  section: "intro" | "testimonial" | "video" | "stats" | "transformation" | "settings" | "contact";
   title?: string;
   subtitle?: string;
   body?: string;
