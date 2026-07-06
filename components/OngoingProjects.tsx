@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion, useInView } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type Project } from "@/lib/supabase";
@@ -24,7 +24,10 @@ export default function OngoingProjects({ projects }: { projects: Project[] }) {
     setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
   };
 
-  const filtered = projects.filter(p => filter === "All" || p.type === filter);
+  const filtered = useMemo(
+    () => projects.filter(p => filter === "All" || p.type === filter),
+    [projects, filter]
+  );
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -32,7 +35,7 @@ export default function OngoingProjects({ projects }: { projects: Project[] }) {
     updateScrollButtons();
     el.addEventListener("scroll", updateScrollButtons);
     return () => el.removeEventListener("scroll", updateScrollButtons);
-  }, [filtered]);
+  }, [filter, projects]);
 
   return (
     <section className="pt-8 pb-20 md:pt-10 md:pb-28 bg-background" ref={ref}>

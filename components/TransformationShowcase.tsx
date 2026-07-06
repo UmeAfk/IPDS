@@ -13,7 +13,9 @@ export default function TransformationShowcase({ items }: { items: SiteContent[]
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   const heading = items.find(i => i.title)?.title || "";
-  const stages = items.filter(i => i.body).length > 0 ? items.filter(i => i.body) : [];
+  const stages = items.filter(i => i.body);
+
+  if (!stages.length) return null;
 
   return (
     <section className="section-padding bg-background" ref={ref}>

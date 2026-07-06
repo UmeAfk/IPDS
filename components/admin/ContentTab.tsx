@@ -93,7 +93,7 @@ export default function ContentTab() {
   };
 
   const addVideo = () => {
-    setVideos(prev => [...prev, { id: "", section: "video", title: "", media_url: "", media_type: "youtube", sort_order: prev.length, is_active: true } as any]);
+    setVideos(prev => [...prev, { id: "", section: "video" as const, title: "", media_url: "", media_type: "youtube" as const, sort_order: prev.length, is_active: true }]);
   };
 
   const saveVideo = async (v: SiteContent) => {
@@ -104,7 +104,7 @@ export default function ContentTab() {
   };
 
   const addTestimonial = () => {
-    setTestimonials(prev => [...prev, { id: "", section: "testimonial", title: "", body: "", author_name: "", author_role: "", media_url: "", media_type: "image", sort_order: prev.length, is_active: true } as any]);
+    setTestimonials(prev => [...prev, { id: "", section: "testimonial" as const, title: "", body: "", author_name: "", author_role: "", media_url: "", media_type: "image" as const, sort_order: prev.length, is_active: true }]);
   };
 
   const saveTestimonial = async (t: SiteContent) => {
@@ -124,11 +124,11 @@ export default function ContentTab() {
   };
 
   const addStat = () => {
-    setStats(prev => [...prev, { id: "", section: "stats", title: "", subtitle: "", sort_order: prev.length, is_active: true } as any]);
+    setStats(prev => [...prev, { id: "", section: "stats" as const, title: "", subtitle: "", sort_order: prev.length, is_active: true }]);
   };
 
   const addTransformationStage = () => {
-    setTransformation(prev => [...prev, { id: "", section: "transformation", title: "", body: "", media_url: "", sort_order: prev.length, is_active: true } as any]);
+    setTransformation(prev => [...prev, { id: "", section: "transformation" as const, title: "", body: "", media_url: "", sort_order: prev.length, is_active: true }]);
   };
 
   const tabs = [

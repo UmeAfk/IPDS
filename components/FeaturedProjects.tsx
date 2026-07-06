@@ -13,17 +13,22 @@ const FILTERS = ["All", "Residential", "Commercial", "Institutional", "Temple", 
 export default function FeaturedProjects({ projects }: { projects: Project[] }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<string>("All");
+  const [index, setIndex] = useState(0);
 
   const filtered = projects.filter(p => filter === "All" || p.type === filter);
+
+  const handleFilterChange = (f: string) => {
+    setFilter(f);
+    setIndex(0);
+  };
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ["start start", "end end"],
   });
 
-  const [index, setIndex] = useState(0);
-
   useMotionValueEvent(scrollYProgress, "change", (v) => {
+    if (filtered.length === 0) return;
     const next = Math.min(Math.floor(v * filtered.length), filtered.length - 1);
     if (next !== index) setIndex(next);
   });
@@ -52,7 +57,7 @@ export default function FeaturedProjects({ projects }: { projects: Project[] }) 
               {FILTERS.map((f) => (
                 <button
                   key={f}
-                  onClick={() => setFilter(f)}
+                  onClick={() => handleFilterChange(f)}
                   className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
                     filter === f
                       ? "bg-foreground text-background"
