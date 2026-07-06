@@ -343,7 +343,8 @@ export async function upsertSiteContent(item: Partial<SiteContent> & { id?: stri
     const { error } = await supabase.from("site_content").update(item).eq("id", item.id);
     return { error: error?.message ?? null };
   }
-  const { error } = await supabase.from("site_content").insert([item]);
+  const { id, ...rest } = item;
+  const { error } = await supabase.from("site_content").insert([rest]);
   return { error: error?.message ?? null };
 }
 

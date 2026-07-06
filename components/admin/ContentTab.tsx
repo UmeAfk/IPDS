@@ -687,28 +687,11 @@ export default function ContentTab() {
                 />
               </div>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={async () => {
-                  const { error } = await upsertSiteContent({
-                    section: "settings",
-                    title: "hero_image",
-                    body: heroImageUrl,
-                    sort_order: 10,
-                    is_active: true,
-                  });
-                  if (error) showToast("Failed to save hero image", "error");
-                  else showToast("Hero image saved");
-                  fetchAll();
-                }}
-                disabled={saving}
-                className="btn-primary flex-1"
-              >
-                <Save size={14} /> Save Image
-              </button>
+            <div className="flex flex-col gap-2">
               <button
                 onClick={async () => {
                   await Promise.all([
+                    upsertSiteContent({ section: "settings", title: "hero_image", body: heroImageUrl, sort_order: 10, is_active: true }),
                     upsertSiteContent({ section: "settings", title: "projects_pipeline_text", body: pipelineText, sort_order: 11, is_active: true }),
                     upsertSiteContent({ section: "settings", title: "meta_description", body: metaDescription, sort_order: 12, is_active: true }),
                   ]);
@@ -716,9 +699,9 @@ export default function ContentTab() {
                   fetchAll();
                 }}
                 disabled={saving}
-                className="btn-primary flex-1"
+                className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-foreground text-background text-[10px] font-bold uppercase tracking-widest"
               >
-                <Save size={14} /> Save Settings
+                <Save size={12} /> Save
               </button>
             </div>
           </div>
