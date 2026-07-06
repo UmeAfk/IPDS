@@ -28,6 +28,7 @@ export default async function Home() {
   const cEmail = contactData.find(c => c.title === "email")?.body || "";
   const cPhone = contactData.find(c => c.title === "phone")?.body || "";
   const cAddress = contactData.find(c => c.title === "address")?.body || "";
+  const pipelineText = fontSettings.find(c => c.title === "projects_pipeline_text")?.body || "";
 
   return (
     <main>
@@ -36,7 +37,7 @@ export default async function Home() {
       <Hero imageUrl={heroImage} />
       <AboutIntro content={siteContent.filter(c => c.section === "intro")} />
       <ServicesCards />
-      <OngoingProjects projects={ongoingProjects} />
+      <OngoingProjects projects={ongoingProjects} pipelineText={pipelineText} />
       <Achievements stats={siteContent.filter(c => c.section === "stats")} />
       <FeaturedProjects projects={keyProjects} />
       <TransformationShowcase items={siteContent.filter(c => c.section === "transformation")} />

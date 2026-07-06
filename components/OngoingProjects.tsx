@@ -8,7 +8,7 @@ import { type Project } from "@/lib/supabase";
 
 const FILTERS = ["All", "Residential", "Commercial", "Institutional", "Temple", "Complex"] as const;
 
-export default function OngoingProjects({ projects }: { projects: Project[] }) {
+export default function OngoingProjects({ projects, pipelineText }: { projects: Project[]; pipelineText?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
@@ -145,7 +145,7 @@ export default function OngoingProjects({ projects }: { projects: Project[] }) {
         className="text-center mt-12"
       >
         <p className="font-display italic text-xl text-muted-foreground">
-          ...and 150+ projects at discussion stage.
+          {pipelineText || "...and 150+ projects at discussion stage."}
         </p>
       </motion.div>
     </section>

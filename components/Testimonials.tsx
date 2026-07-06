@@ -35,7 +35,7 @@ function TestimonialCard({ t, onPlayVideo }: { t: SiteContent; onPlayVideo?: (ur
         </div>
       )}
       <span className="text-accent font-display text-5xl leading-none">&quot;</span>
-      <p className="body-text text-foreground leading-relaxed flex-1">{t.body}</p>
+      <p className="body-text text-foreground leading-relaxed flex-1 break-words overflow-hidden">{t.body}</p>
       <div className="border-t border-border pt-4">
         <p className="font-medium text-foreground">{t.author_name}</p>
         <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mt-1">

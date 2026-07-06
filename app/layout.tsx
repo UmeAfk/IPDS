@@ -1,5 +1,6 @@
 import { Arsenal, Rubik } from "next/font/google";
 import { Toaster } from "@/components/ui/Toaster";
+import { getAllSiteContent } from "@/lib/supabase";
 import "@/styles/globals.css";
 
 const display = Arsenal({
@@ -17,7 +18,11 @@ const body = Rubik({
   display: "swap",
 });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const siteContent = await getAllSiteContent();
+  const metaDescSetting = siteContent.find(c => c.section === "settings" && c.title === "meta_description");
+  const metaDescription = metaDescSetting?.body || "Pune's leading self-redevelopment consultancy. 150+ housing society projects delivered across Maharashtra with full transparency and zero compromise.";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -29,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
         <title>IPDS - Self Redevelopment Consultancy | Pune</title>
-        <meta name="description" content="Pune's leading self-redevelopment consultancy. 150+ housing society projects delivered across Maharashtra with full transparency and zero compromise." />
+        <meta name="description" content={metaDescription} />
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="shortcut icon" href="/favicon.svg" />
         <meta name="theme-color" content="#b8922a" />

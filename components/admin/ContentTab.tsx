@@ -54,6 +54,8 @@ export default function ContentTab() {
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactAddress, setContactAddress] = useState("");
+  const [pipelineText, setPipelineText] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
   const [fontTab, setFontTab] = useState<"display" | "body" | "mono">("display");
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -93,6 +95,10 @@ export default function ContentTab() {
     if (cPhone?.body) setContactPhone(cPhone.body);
     const cAddr = all.find(c => c.section === "contact" && c.title === "address");
     if (cAddr?.body) setContactAddress(cAddr.body);
+    const pText = all.find(c => c.section === "settings" && c.title === "projects_pipeline_text");
+    if (pText?.body) setPipelineText(pText.body);
+    const mDesc = all.find(c => c.section === "settings" && c.title === "meta_description");
+    if (mDesc?.body) setMetaDescription(mDesc.body);
   };
 
   useEffect(() => { fetchAll(); }, []);
@@ -659,24 +665,62 @@ export default function ContentTab() {
                 />
               </div>
             )}
-            <button
-              onClick={async () => {
-                const { error } = await upsertSiteContent({
-                  section: "settings",
-                  title: "hero_image",
-                  body: heroImageUrl,
-                  sort_order: 10,
-                  is_active: true,
-                });
-                if (error) showToast("Failed to save hero image", "error");
-                else showToast("Hero image saved");
-                fetchAll();
-              }}
-              disabled={saving}
-              className="btn-primary w-full"
-            >
-              <Save size={14} /> Save
-            </button>
+            <div className="border-t border-border pt-4 space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Pipeline Text</label>
+                <input
+                  type="text"
+                  value={pipelineText}
+                  onChange={e => setPipelineText(e.target.value)}
+                  placeholder="...and 150+ projects at discussion stage."
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2">Meta Description</label>
+                <textarea
+                  value={metaDescription}
+                  onChange={e => setMetaDescription(e.target.value)}
+                  placeholder="Pune's leading self-redevelopment consultancy..."
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl bg-background border border-border text-sm focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  const { error } = await upsertSiteContent({
+                    section: "settings",
+                    title: "hero_image",
+                    body: heroImageUrl,
+                    sort_order: 10,
+                    is_active: true,
+                  });
+                  if (error) showToast("Failed to save hero image", "error");
+                  else showToast("Hero image saved");
+                  fetchAll();
+                }}
+                disabled={saving}
+                className="btn-primary flex-1"
+              >
+                <Save size={14} /> Save Image
+              </button>
+              <button
+                onClick={async () => {
+                  await Promise.all([
+                    upsertSiteContent({ section: "settings", title: "projects_pipeline_text", body: pipelineText, sort_order: 11, is_active: true }),
+                    upsertSiteContent({ section: "settings", title: "meta_description", body: metaDescription, sort_order: 12, is_active: true }),
+                  ]);
+                  showToast("Settings saved");
+                  fetchAll();
+                }}
+                disabled={saving}
+                className="btn-primary flex-1"
+              >
+                <Save size={14} /> Save Settings
+              </button>
+            </div>
           </div>
         </div>
       )}

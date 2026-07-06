@@ -11,7 +11,7 @@ import {
   Save, Mail,
   Link as LinkIcon, Plus, EyeOff
 } from "lucide-react";
-import { supabase, getProjects, getProjectToken, updateProject, getEnquiries, deleteEnquiry, saveVisitor, saveEnquiry, type Project, type Enquiry } from "@/lib/supabase";
+import { supabase, getProjects, getProjectToken, updateProject, updateProjectOrder, getEnquiries, deleteEnquiry, saveVisitor, saveEnquiry, type Project, type Enquiry } from "@/lib/supabase";
 import { haptic } from "ios-haptics";
 import EditProjectModal from "./EditProjectModal";
 import EmailTab from "./EmailTab";
@@ -59,6 +59,8 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sortFieldEnquiry, setSortFieldEnquiry] = useState<"timestamp" | "name" | "project">("timestamp");
   const [sortDirEnquiry, setSortDirEnquiry] = useState<"desc" | "asc">("desc");
+  const [dragItem, setDragItem] = useState<string | null>(null);
+  const [dragSection, setDragSection] = useState<"ongoing" | "key" | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -531,108 +533,157 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 key="projects"
                 initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }}
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                className="space-y-16"
               >
-                {projectStats.map((p) => (
-                  <div key={p.id} className="bevel-card p-8 bg-card border border-border rounded-[2rem] group hover:border-brand-accent/30 transition-all flex flex-col relative overflow-hidden">
-                    {/* Status Badge */}
-                    <div className="absolute top-4 right-4 flex items-center gap-2">
-                      <button
-                        onClick={async () => {
-                          haptic();
-                          const token = await getProjectToken(p.id);
-                          const url = `${window.location.origin}/p/${token}`;
-                          navigator.clipboard.writeText(url);
-                          alert("Secure share link copied!");
-                        }}
-                        className="p-2 rounded-xl bg-background border border-border text-muted-foreground hover:text-brand-accent transition-all"
-                        title="Copy share link"
-                      >
-                        <LinkIcon size={14} />
-                      </button>
-                      <button
-                        onClick={async () => {
-                          haptic();
-                          const token = await getProjectToken(p.id);
-                          window.open(`${window.location.origin}/p/${token}`, "_blank");
-                        }}
-                        className="p-2 rounded-xl bg-background border border-border text-muted-foreground hover:text-brand-accent transition-all"
-                        title="Open private page"
-                      >
-                        <ArrowUpRight size={14} />
-                      </button>
-                      <button
-                        onClick={() => {
-                          haptic();
-                          window.open(`${window.location.origin}/?project=${p.id}`, '_blank');
-                        }}
-                        className="p-2 rounded-xl bg-background border border-border text-muted-foreground hover:text-brand-accent transition-all"
-                        title="Open Site"
-                      >
-                        <ExternalLink size={14} />
-                      </button>
-                    </div>
-
-                    <div className="flex items-start justify-between mb-6">
-                      <div className="flex flex-col gap-2">
-
-                        <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest self-start ${p.status === 'published' ? 'bg-brand-accent/20 text-brand-accent' :
-                            p.status === 'discarded' ? 'bg-red-500/20 text-red-400' :
-                              'bg-zinc-500/20 text-zinc-400'
-                          }`}>
-                          {p.status || 'Draft'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <h3 className="text-xl font-medium mb-2 tracking-tight">{p.title}</h3>
-                    <p className="text-sm text-muted-foreground font-light line-clamp-2 leading-relaxed mb-8">{p.description || "Experimental architectural visualization."}</p>
-
-                    <div className="flex flex-col gap-3 mt-auto">
-                      <div className="flex items-center justify-between pt-6 border-t border-border">
-                        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                          <Globe size={14} className="opacity-50" />
-                          {p.location}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl font-medium text-foreground tracking-tighter leading-none">{p.count}</div>
-                          <div className="text-[8px] font-bold text-muted-foreground uppercase mt-1 tracking-widest text-center">Hits</div>
+                {([
+                  { label: "Ongoing Projects", key: "ongoing" as const, empty: "No ongoing projects yet." },
+                  { label: "Key Projects", key: "key" as const, empty: "No key projects yet." },
+                ]).map(({ label, key, empty }) => {
+                  const items = projectStats.filter(p => p.category === key);
+                  return (
+                    <div key={key}>
+                      <div className="flex items-center justify-between mb-8">
+                        <div>
+                          <h2 className="text-2xl font-medium tracking-tight">{label}</h2>
+                          <p className="text-sm text-muted-foreground font-light mt-1">{items.length} project{items.length !== 1 ? "s" : ""}</p>
                         </div>
                       </div>
+                      {items.length === 0 ? (
+                        <div className="text-center py-16 border-2 border-dashed border-border/50 rounded-[2rem]">
+                          <p className="text-sm text-muted-foreground italic">{empty}</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                          {items.map((p, idx) => (
+                            <div
+                              key={p.id}
+                              draggable
+                              onDragStart={() => { setDragItem(p.id); setDragSection(key); }}
+                              onDragOver={e => { if (dragItem && dragItem !== p.id && dragSection === key) e.preventDefault(); }}
+                              onDrop={async () => {
+                                if (!dragItem || dragItem === p.id || dragSection !== key) return;
+                                const reordered = [...items];
+                                const fromIdx = reordered.findIndex(x => x.id === dragItem);
+                                const toIdx = reordered.findIndex(x => x.id === p.id);
+                                if (fromIdx === -1 || toIdx === -1) return;
+                                reordered.splice(toIdx, 0, reordered.splice(fromIdx, 1)[0]);
+                                await updateProjectOrder(reordered.map(x => x.id));
+                                fetchData();
+                                setDragItem(null);
+                                setDragSection(null);
+                              }}
+                              onDragEnd={() => { setDragItem(null); setDragSection(null); }}
+                              className={`bevel-card p-8 bg-card border rounded-[2rem] group transition-all flex flex-col relative overflow-hidden ${
+                                dragItem === p.id ? "opacity-40 border-brand-accent" : "border-border hover:border-brand-accent/30"
+                              } ${dragItem && dragItem !== p.id && dragSection === key ? "cursor-grab" : ""}`}
+                            >
+                              {/* Number badge */}
+                              <div className="absolute top-4 left-4 w-8 h-8 rounded-xl bg-background border border-border flex items-center justify-center text-xs font-mono font-bold text-muted-foreground">
+                                {idx + 1}
+                              </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <button
-                          onClick={() => { haptic(); setEditingProject(p); }}
-                          className="flex-1 py-3 rounded-2xl bg-secondary border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-background transition-all"
-                        >
-                          Edit Details
-                        </button>
-                        <button
-                          onClick={async () => {
-                            haptic();
-                            await updateProject(p.id, { is_active: !p.is_active });
-                            fetchData();
-                          }}
-                          className={`flex-1 py-3 rounded-2xl border border-border text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${p.is_active ? "bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/20" : "bg-secondary text-muted-foreground hover:bg-background"
-                            }`}
-                        >
-                          {p.is_active ? <Eye size={12} /> : <EyeOff size={12} />}
-                          {p.is_active ? "Active" : "Hidden"}
-                        </button>
-                      </div>
+                              {/* Action buttons */}
+                              <div className="absolute top-4 right-4 flex items-center gap-2">
+                                <button
+                                  onClick={async () => {
+                                    haptic();
+                                    const token = await getProjectToken(p.id);
+                                    const url = `${window.location.origin}/p/${token}`;
+                                    navigator.clipboard.writeText(url);
+                                    alert("Secure share link copied!");
+                                  }}
+                                  className="p-2 rounded-xl bg-background border border-border text-muted-foreground hover:text-brand-accent transition-all"
+                                  title="Copy share link"
+                                >
+                                  <LinkIcon size={14} />
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    haptic();
+                                    const token = await getProjectToken(p.id);
+                                    window.open(`${window.location.origin}/p/${token}`, "_blank");
+                                  }}
+                                  className="p-2 rounded-xl bg-background border border-border text-muted-foreground hover:text-brand-accent transition-all"
+                                  title="Open private page"
+                                >
+                                  <ArrowUpRight size={14} />
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    haptic();
+                                    window.open(`${window.location.origin}/?project=${p.id}`, '_blank');
+                                  }}
+                                  className="p-2 rounded-xl bg-background border border-border text-muted-foreground hover:text-brand-accent transition-all"
+                                  title="Open Site"
+                                >
+                                  <ExternalLink size={14} />
+                                </button>
+                              </div>
+
+                              <div className="flex items-start justify-between mb-6" style={{ paddingTop: '2.5rem' }}>
+                                <div className="flex flex-col gap-2">
+                                  <span className={`text-[8px] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest self-start ${p.status === 'published' ? 'bg-brand-accent/20 text-brand-accent' :
+                                      p.status === 'discarded' ? 'bg-red-500/20 text-red-400' :
+                                        'bg-zinc-500/20 text-zinc-400'
+                                    }`}>
+                                    {p.status || 'Draft'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <h3 className="text-xl font-medium mb-2 tracking-tight">{p.title}</h3>
+                              <p className="text-sm text-muted-foreground font-light line-clamp-2 leading-relaxed mb-8">{p.description || "Experimental architectural visualization."}</p>
+
+                              <div className="flex flex-col gap-3 mt-auto">
+                                <div className="flex items-center justify-between pt-6 border-t border-border">
+                                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                    <Globe size={14} className="opacity-50" />
+                                    {p.location}
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="text-xl font-medium text-foreground tracking-tighter leading-none">{p.count}</div>
+                                    <div className="text-[8px] font-bold text-muted-foreground uppercase mt-1 tracking-widest text-center">Hits</div>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                  <button
+                                    onClick={() => { haptic(); setEditingProject(p); }}
+                                    className="flex-1 py-3 rounded-2xl bg-secondary border border-border text-[10px] font-bold uppercase tracking-widest hover:bg-background transition-all"
+                                  >
+                                    Edit Details
+                                  </button>
+                                  <button
+                                    onClick={async () => {
+                                      haptic();
+                                      await updateProject(p.id, { is_active: !p.is_active });
+                                      fetchData();
+                                    }}
+                                    className={`flex-1 py-3 rounded-2xl border border-border text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${p.is_active ? "bg-brand-accent/10 text-brand-accent hover:bg-brand-accent/20" : "bg-secondary text-muted-foreground hover:bg-background"
+                                      }`}
+                                  >
+                                    {p.is_active ? <Eye size={12} /> : <EyeOff size={12} />}
+                                    {p.is_active ? "Active" : "Hidden"}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+
+                          <button
+                            onClick={() => { haptic(); setEditingProject({} as any); }}
+                            className="bevel-card p-8 bg-card border-2 border-dashed border-border/50 rounded-[2rem] flex flex-col items-center justify-center text-center hover:border-brand-accent/30 transition-all group"
+                          >
+                            <div className="w-12 h-12 rounded-2xl bg-background border border-border flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                              <Plus size={24} className="text-brand-accent" />
+                            </div>
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Add New Project</p>
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-
-                <button
-                  onClick={() => { haptic(); setEditingProject({} as any); }}
-                  className="bevel-card p-8 bg-card border-2 border-dashed border-border/50 rounded-[2rem] flex flex-col items-center justify-center text-center hover:border-brand-accent/30 transition-all group"
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-background border border-border flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Plus size={24} className="text-brand-accent" />
-                  </div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Add New Project</p>
-                </button>
+                  );
+                })}
               </motion.div>
             )}
 
