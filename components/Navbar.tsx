@@ -29,7 +29,7 @@ export default function Navbar() {
       <nav
         className={`fixed top-0 inset-x-0 z-50 h-[60px] md:h-[72px] flex items-center transition-all duration-300 ${
           scrolled
-            ? "bg-white/95 backdrop-blur-sm border-b border-border shadow-sm"
+            ? "bg-background/95 backdrop-blur-sm border-b border-border shadow-sm"
             : "bg-transparent"
         }`}
       >

@@ -5,6 +5,7 @@ import { notFound, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Download, FileText } from "lucide-react";
+import { useTheme } from "next-themes";
 import type { Project, BlogSection } from "@/lib/supabase";
 import { getDownloadsConfig } from "@/lib/supabase";
 
@@ -25,6 +26,11 @@ export default function ProjectPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
+  const [mounted, setMounted] = useState(false);
+  const { theme } = useTheme();
+
+  useEffect(() => { setMounted(true); }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -35,9 +41,7 @@ export default function ProjectPage() {
 
   if (!project) return notFound();
 
-  const heroImage = project.image_url || "";
-  const thumb1 = project.gallery_updates?.[0]?.media_url || project.image_url_dark || "";
-  const thumb2 = project.gallery_updates?.[1]?.media_url || project.image_url_light || "";
+  const heroImage = (mounted && theme === "dark" && project.image_url_dark) || (mounted && theme === "light" && project.image_url_light) || project.image_url || "";
 
   return (
     <>
@@ -57,7 +61,6 @@ export default function ProjectPage() {
             fill
             className="object-cover"
             priority
-            unoptimized
             sizes="100vw"
           />
         </div>
@@ -84,21 +87,10 @@ export default function ProjectPage() {
               <div className="space-y-6">
                 <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border">
                   <Image
-                    src={thumb1}
-                    alt={`${project.title} view 1`}
+                    src={heroImage}
+                    alt={`${project.title} gallery`}
                     fill
                     className="object-cover"
-                    unoptimized
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                </div>
-                <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-border">
-                  <Image
-                    src={thumb2}
-                    alt={`${project.title} view 2`}
-                    fill
-                    className="object-cover"
-                    unoptimized
                     sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>

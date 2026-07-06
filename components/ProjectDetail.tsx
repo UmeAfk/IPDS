@@ -137,7 +137,6 @@ function Gallery({ media }: { media: SiteUpdate[] }) {
       <Image
         src={item.media_url}
         fill
-        unoptimized
         className={`object-cover ${!isSub ? "cursor-zoom-in" : ""}`}
         onClick={() => !isSub && setLightbox(true)}
         alt=""
@@ -192,7 +191,7 @@ function Gallery({ media }: { media: SiteUpdate[] }) {
             >
               <div className="absolute inset-0 pointer-events-none">
                 {m.thumbnail_url ? (
-                  <Image src={m.thumbnail_url} fill unoptimized className="object-cover" alt="Video Thumbnail" sizes="100px" />
+                  <Image src={m.thumbnail_url} fill className="object-cover" alt="Video Thumbnail" sizes="100px" />
                 ) : (
                   renderMedia(m, true)
                 )}
@@ -222,7 +221,6 @@ function Gallery({ media }: { media: SiteUpdate[] }) {
                 alt="Enlarged gallery item"
                 width={1920}
                 height={1080}
-                unoptimized
                 className="max-w-full max-h-[90vh] rounded-3xl object-contain shadow-2xl"
                 initial={{ scale: 0.9, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
@@ -331,7 +329,6 @@ export default function ProjectDetail({
             src={heroTheme === "dark" && p.image_url_dark ? p.image_url_dark : heroTheme === "light" && p.image_url_light ? p.image_url_light : p.image_url} 
             fill
             priority
-            unoptimized
             alt={p.title}
             style={{ y: heroY }}
             initial={{ opacity: 0, scale: 1.05 }}

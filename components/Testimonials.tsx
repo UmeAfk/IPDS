@@ -28,7 +28,7 @@ function TestimonialCard({ t, onPlayVideo }: { t: SiteContent; onPlayVideo?: (ur
             )}
           </div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+            <div className="w-12 h-12 rounded-full bg-background/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
               <Play size={18} className="text-foreground ml-1" fill="currentColor" />
             </div>
           </div>

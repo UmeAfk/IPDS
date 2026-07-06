@@ -53,7 +53,7 @@ export default function TransformationShowcase({ items }: { items: SiteContent[]
                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
-                    <div className="w-10 h-10 rounded-full bg-white/80 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-background/80 flex items-center justify-center">
                       <ZoomIn size={18} className="text-foreground" />
                     </div>
                   </div>
