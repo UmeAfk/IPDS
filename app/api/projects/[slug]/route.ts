@@ -20,9 +20,10 @@ export async function GET(_request: Request, { params }: { params: { slug: strin
     return slug === params.slug;
   });
 
-  if (!project) {
+  if (!project || project.status !== "published") {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
 
-  return NextResponse.json(project);
+  const { access_password, ...safe } = project;
+  return NextResponse.json(safe);
 }

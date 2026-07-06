@@ -19,6 +19,7 @@ export default function OngoingProjects({ projects, pipelineText }: { projects: 
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateScrollButtons = () => {
     const el = scrollRef.current;
@@ -39,6 +40,20 @@ export default function OngoingProjects({ projects, pipelineText }: { projects: 
     el.addEventListener("scroll", updateScrollButtons);
     return () => el.removeEventListener("scroll", updateScrollButtons);
   }, [filter, projects]);
+
+  useEffect(() => {
+    return () => { if (hoverTimer.current) clearTimeout(hoverTimer.current); };
+  }, []);
+
+  const handlePointerEnter = (idx: number) => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHoveredIdx(idx), 50);
+  };
+
+  const handlePointerLeave = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHoveredIdx(null), 50);
+  };
 
   return (
     <section className="pt-8 pb-20 md:pt-10 md:pb-28 bg-background" ref={ref}>
@@ -91,8 +106,8 @@ export default function OngoingProjects({ projects, pipelineText }: { projects: 
                     maxWidth: hoveredIdx === idx ? "600px" : undefined,
                     cursor: "pointer",
                   }}
-                  onMouseEnter={() => setHoveredIdx(idx)}
-                  onMouseLeave={() => setHoveredIdx(null)}
+                  onPointerEnter={() => handlePointerEnter(idx)}
+                  onPointerLeave={handlePointerLeave}
                   onClick={() => router.push(`/projects/${slugify(project.title)}`)}>
                   <Image
                     src={project.image_url || ""}

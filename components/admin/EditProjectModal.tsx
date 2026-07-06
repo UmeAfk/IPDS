@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Save, Loader2, Image as ImageIcon, Plus, Trash2, 
@@ -52,6 +52,11 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
   const [mainImage, setMainImage] = useState<File | null>(null);
   const [darkImage, setDarkImage] = useState<File | null>(null);
   const [lightImage, setLightImage] = useState<File | null>(null);
+  const savingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (savingTimer.current) clearTimeout(savingTimer.current); };
+  }, []);
   
   
   // Downloads
@@ -157,7 +162,8 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
       }
     }
     setSaving("success");
-    setTimeout(() => {
+    if (savingTimer.current) clearTimeout(savingTimer.current);
+    savingTimer.current = setTimeout(() => {
       setSaving(null);
     }, 2000);
   }
