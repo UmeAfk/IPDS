@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export async function GET(_request: Request, { params }: { params: { slug: string } }) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ""
   );
 
   const { data, error } = await supabase.from("projects").select("*").order("sort_order", { ascending: true });

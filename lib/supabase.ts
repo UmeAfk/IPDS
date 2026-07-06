@@ -2,9 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import { slugify } from "./slugify";
 
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
 
-export const supabase = createClient(supabaseUrl, supabaseAnon);
+export const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ── Project type ──────────────────────────────────────────────────────────────
 export type ProjectType  = "Residential" | "Commercial" | "Institutional" | "Temple" | "Complex";
