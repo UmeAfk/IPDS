@@ -86,7 +86,8 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
   // Keep orderedProjects in sync with fetched data
   useEffect(() => {
-    setOrderedProjects(projects);
+    if (projects.length === 0) return;
+    setOrderedProjects([...projects].sort((a, b) => a.sort_order - b.sort_order));
   }, [projects]);
 
   // Sample Data Shortcut
@@ -541,25 +542,27 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                 transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 className="space-y-16"
               >
-                {([
-                  { label: "Ongoing Projects", key: "ongoing" as const, empty: "No ongoing projects yet." },
-                  { label: "Key Projects", key: "key" as const, empty: "No key projects yet." },
-                ]).map(({ label, key, empty }) => {
-                  const items = orderedProjects
-                    .filter(p => p.category === key)
-                    .map(p => ({ ...p, count: visitors.filter(v => v.project_id === p.id).length }))
-                    .sort((a, b) => a.sort_order - b.sort_order);
+                {(["ongoing", "key"] as const).map((category) => {
+                  const label = category === "ongoing" ? "Ongoing Projects" : "Key Projects";
+
+                  // Get items for this category — NO .sort() here, orderedProjects IS the order
+                  const items = orderedProjects.filter(p => p.category === category);
+
                   return (
-                    <div key={key}>
+                    <div key={category} className="mb-16">
                       <div className="flex items-center justify-between mb-8">
                         <div>
                           <h2 className="text-2xl font-medium tracking-tight">{label}</h2>
-                          <p className="text-sm text-muted-foreground font-light mt-1">{items.length} project{items.length !== 1 ? "s" : ""}</p>
+                          <p className="text-sm text-muted-foreground font-light mt-1">
+                            {items.length} project{items.length !== 1 ? "s" : ""}
+                          </p>
                         </div>
+                        <p className="text-xs text-muted-foreground italic">Drag cards to reorder</p>
                       </div>
+
                       {items.length === 0 ? (
                         <div className="text-center py-16 border-2 border-dashed border-border/50 rounded-[2rem]">
-                          <p className="text-sm text-muted-foreground italic">{empty}</p>
+                          <p className="text-sm text-muted-foreground italic">No projects yet.</p>
                         </div>
                       ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -567,40 +570,77 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             <div
                               key={p.id}
                               draggable
-                              onDragStart={() => { dragRef.current = { id: p.id, section: key }; }}
-                              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                              onDragEnter={() => setDragOver(p.id)}
+                              onDragStart={(e) => {
+                                dragRef.current = { id: p.id, section: category };
+                                e.dataTransfer.effectAllowed = "move";
+                              }}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.dataTransfer.dropEffect = "move";
+                              }}
+                              onDragEnter={(e) => {
+                                e.preventDefault();
+                                setDragOver(p.id);
+                              }}
                               onDragLeave={() => setDragOver(null)}
-                              onDrop={async () => {
+                              onDrop={async (e) => {
+                                e.preventDefault();
                                 const drag = dragRef.current;
-                                if (!drag || drag.id === p.id || drag.section !== key) return;
-                                // items is the already-filtered array for this section
-                                const fromIdx = items.findIndex(x => x.id === drag.id);
-                                const toIdx   = items.findIndex(x => x.id === p.id);
-                                if (fromIdx === -1 || toIdx === -1) return;
-                                const reordered = [...items];
-                                reordered.splice(toIdx, 0, reordered.splice(fromIdx, 1)[0]);
-                                // Optimistic update — show new order immediately
-                                setOrderedProjects(prev => {
-                                  const others = prev.filter(x => x.category !== key);
-                                  const base = key === "key" ? 1000 : 0;
-                                  const withNewOrder = reordered.map((item, i) => ({ ...item, sort_order: base + i }));
-                                  return [...others, ...withNewOrder];
-                                });
-                                // Persist to DB
-                                await updateProjectOrder(reordered.map(x => x.id), key);
+                                if (!drag || drag.id === p.id || drag.section !== category) return;
+
+                                // Build new order from current items array
+                                const from = items.findIndex(x => x.id === drag.id);
+                                const to   = items.findIndex(x => x.id === p.id);
+                                if (from === -1 || to === -1) return;
+
+                                const newOrder = [...items];
+                                newOrder.splice(to, 0, newOrder.splice(from, 1)[0]);
+
+                                // Update base sort_order values
+                                const base = category === "key" ? 1000 : 0;
+                                const withOrder = newOrder.map((item, i) => ({
+                                  ...item,
+                                  sort_order: base + i,
+                                }));
+
+                                // Optimistic update — replace only this category in state
+                                setOrderedProjects(prev => [
+                                  ...prev.filter(x => x.category !== category),
+                                  ...withOrder,
+                                ]);
+
+                                setDragOver(null);
+                                dragRef.current = null;
+
+                                // Save to DB
+                                const { error } = await updateProjectOrder(
+                                  newOrder.map(x => x.id),
+                                  category
+                                );
+                                if (error) {
+                                  // Rollback on failure
+                                  setOrderedProjects(prev => [...prev]);
+                                  alert("Failed to save order. Please try again.");
+                                }
+                              }}
+                              onDragEnd={() => {
                                 dragRef.current = null;
                                 setDragOver(null);
                               }}
-                              onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
-                              className={`bevel-card p-8 bg-card border rounded-[2rem] group transition-all flex flex-col relative overflow-hidden ${
-                                dragRef.current?.id === p.id ? "opacity-40 scale-95" :
-                                dragOver === p.id && dragRef.current && dragRef.current.id !== p.id && dragRef.current.section === key ? "border-brand-accent bg-brand-accent/5 scale-[1.02]" :
-                                "border-border hover:border-brand-accent/30"
-                              } ${dragRef.current && dragRef.current.id !== p.id && dragRef.current.section === key ? "cursor-grab" : ""}`}
+                              className={`bevel-card p-8 bg-card border rounded-[2rem] group 
+                                transition-all duration-200 flex flex-col relative overflow-hidden 
+                                cursor-grab active:cursor-grabbing select-none
+                                ${dragRef.current?.id === p.id 
+                                  ? "opacity-40 scale-95 shadow-none" 
+                                  : dragOver === p.id 
+                                  ? "border-accent bg-accent/5 scale-[1.02] shadow-xl" 
+                                  : "border-border hover:border-accent/30"
+                                }`}
                             >
                               {/* Number badge */}
-                              <div className="absolute top-4 left-4 w-8 h-8 rounded-xl bg-background border border-border flex items-center justify-center text-xs font-mono font-bold text-muted-foreground">
+                              <div className="absolute top-4 left-4 w-8 h-8 rounded-xl 
+                                bg-background border border-border flex items-center justify-center 
+                                text-xs font-mono font-bold text-muted-foreground">
                                 {idx + 1}
                               </div>
 
@@ -663,7 +703,9 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                                     {p.location}
                                   </div>
                                   <div className="text-right">
-                                    <div className="text-xl font-medium text-foreground tracking-tighter leading-none">{p.count}</div>
+                                    <div className="text-xl font-medium text-foreground tracking-tighter leading-none">
+                                      {visitors.filter(v => v.project_id === p.id).length}
+                                    </div>
                                     <div className="text-[8px] font-bold text-muted-foreground uppercase mt-1 tracking-widest text-center">Hits</div>
                                   </div>
                                 </div>

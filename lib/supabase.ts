@@ -4,7 +4,11 @@ import { slugify } from "./slugify";
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  global: {
+    fetch: (url, options) => fetch(url, { ...options, cache: "no-store" }),
+  },
+});
 
 // ── Project type ──────────────────────────────────────────────────────────────
 export type ProjectType  = "Residential" | "Commercial" | "Institutional" | "Temple" | "Complex";
@@ -185,17 +189,22 @@ export async function deleteProject(id: string): Promise<{ error: string | null 
   return { error: error?.message ?? null };
 }
 
-export async function updateProjectOrder(ids: string[], category: "ongoing" | "key"): Promise<void> {
-  const res = await fetch("/api/admin/update-project-order", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids, category }),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    console.error("Order update failed:", body.error);
-    throw new Error(body.error || "Failed to update project order");
-  }
+export async function updateProjectOrder(
+  ids: string[], 
+  category: "ongoing" | "key"
+): Promise<{ error: string | null }> {
+  const base = category === "key" ? 1000 : 0;
+  const results = await Promise.all(
+    ids.map((id, i) =>
+      supabase
+        .from("projects")
+        .update({ sort_order: base + i })
+        .eq("id", id)
+    )
+  );
+  const failed = results.find(r => r.error);
+  if (failed?.error) return { error: failed.error.message };
+  return { error: null };
 }
 
 // ── Access Control (Auth) ──────────────────────────────────────────────────
