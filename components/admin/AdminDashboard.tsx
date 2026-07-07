@@ -59,8 +59,9 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sortFieldEnquiry, setSortFieldEnquiry] = useState<"timestamp" | "name" | "project">("timestamp");
   const [sortDirEnquiry, setSortDirEnquiry] = useState<"desc" | "asc">("desc");
-  const [dragItem, setDragItem] = useState<string | null>(null);
-  const [dragSection, setDragSection] = useState<"ongoing" | "key" | null>(null);
+  const dragRef = useRef<{ id: string; section: string } | null>(null);
+  const [orderedProjects, setOrderedProjects] = useState<Project[]>([]);
+  const [dragOver, setDragOver] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -82,6 +83,11 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Keep orderedProjects in sync with fetched data
+  useEffect(() => {
+    setOrderedProjects(projects);
+  }, [projects]);
 
   // Sample Data Shortcut
   useEffect(() => {
@@ -165,9 +171,9 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
       return sortDirEnquiry === "asc" ? valA.localeCompare(valB) : valB.localeCompare(valA);
     });
 
-  const projectStats = projects.map((p: Project) => ({
+  const projectStats = orderedProjects.map((p: Project) => ({
     ...p, count: visitors.filter(v => v.project_id === p.id).length,
-  })).sort((a, b) => b.count - a.count);
+  })).sort((a, b) => a.sort_order - b.sort_order);
 
   // Helper: wrap value so Excel treats it as text (prevents scientific notation for phone numbers)
   const csvCell = (val: string, forceText = false) => forceText ? `="${val}"` : `"${val}"`;
@@ -558,24 +564,34 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                             <div
                               key={p.id}
                               draggable
-                              onDragStart={() => { setDragItem(p.id); setDragSection(key); }}
-                              onDragOver={e => { if (dragItem && dragItem !== p.id && dragSection === key) e.preventDefault(); }}
+                              onDragStart={() => { dragRef.current = { id: p.id, section: key }; }}
+                              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                              onDragEnter={() => setDragOver(p.id)}
+                              onDragLeave={() => setDragOver(null)}
                               onDrop={async () => {
-                                if (!dragItem || dragItem === p.id || dragSection !== key) return;
-                                const reordered = [...items];
-                                const fromIdx = reordered.findIndex(x => x.id === dragItem);
+                                const drag = dragRef.current;
+                                if (!drag || drag.id === p.id || drag.section !== key) return;
+                                const reordered = orderedProjects.filter(x => x.category === key);
+                                const fromIdx = reordered.findIndex(x => x.id === drag.id);
                                 const toIdx = reordered.findIndex(x => x.id === p.id);
                                 if (fromIdx === -1 || toIdx === -1) return;
                                 reordered.splice(toIdx, 0, reordered.splice(fromIdx, 1)[0]);
+                                // Optimistic update — show new order immediately
+                                setOrderedProjects(prev => [
+                                  ...prev.filter(x => x.category !== key),
+                                  ...reordered
+                                ]);
+                                // Persist to DB
                                 await updateProjectOrder(reordered.map(x => x.id));
-                                fetchData();
-                                setDragItem(null);
-                                setDragSection(null);
+                                dragRef.current = null;
+                                setDragOver(null);
                               }}
-                              onDragEnd={() => { setDragItem(null); setDragSection(null); }}
+                              onDragEnd={() => { dragRef.current = null; setDragOver(null); }}
                               className={`bevel-card p-8 bg-card border rounded-[2rem] group transition-all flex flex-col relative overflow-hidden ${
-                                dragItem === p.id ? "opacity-40 border-brand-accent" : "border-border hover:border-brand-accent/30"
-                              } ${dragItem && dragItem !== p.id && dragSection === key ? "cursor-grab" : ""}`}
+                                dragRef.current?.id === p.id ? "opacity-40 scale-95" :
+                                dragOver === p.id && dragRef.current && dragRef.current.id !== p.id && dragRef.current.section === key ? "border-brand-accent bg-brand-accent/5 scale-[1.02]" :
+                                "border-border hover:border-brand-accent/30"
+                              } ${dragRef.current && dragRef.current.id !== p.id && dragRef.current.section === key ? "cursor-grab" : ""}`}
                             >
                               {/* Number badge */}
                               <div className="absolute top-4 left-4 w-8 h-8 rounded-xl bg-background border border-border flex items-center justify-center text-xs font-mono font-bold text-muted-foreground">
