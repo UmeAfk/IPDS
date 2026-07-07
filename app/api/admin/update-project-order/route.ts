@@ -18,14 +18,18 @@ export async function POST(req: NextRequest) {
   );
 
   const base = category === "key" ? 1000 : 0;
-  const { error } = await supabase
-    .from("projects")
-    .upsert(
-      ids.map((id: string, i: number) => ({ id, sort_order: base + i })),
-      { onConflict: "id" }
-    );
+  const updates = await Promise.all(
+    ids.map((id: string, i: number) =>
+      supabase
+        .from("projects")
+        .update({ sort_order: base + i })
+        .eq("id", id)
+    )
+  );
+  const error = updates.find(r => r.error)?.error ?? null;
 
   if (error) {
+    console.error("updateProjectOrder failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

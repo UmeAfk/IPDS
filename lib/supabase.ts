@@ -192,8 +192,9 @@ export async function updateProjectOrder(ids: string[], category: "ongoing" | "k
     body: JSON.stringify({ ids, category }),
   });
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Failed to update project order");
+    const body = await res.json().catch(() => ({}));
+    console.error("Order update failed:", body.error);
+    throw new Error(body.error || "Failed to update project order");
   }
 }
 

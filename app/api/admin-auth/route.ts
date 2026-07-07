@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         secure: true,
         sameSite: "strict",
         maxAge: 60 * 60 * 8, // 8 hour session
-        path: "/admin",
+        path: "/",
       });
       return response;
     }
