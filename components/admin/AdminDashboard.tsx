@@ -545,7 +545,10 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                   { label: "Ongoing Projects", key: "ongoing" as const, empty: "No ongoing projects yet." },
                   { label: "Key Projects", key: "key" as const, empty: "No key projects yet." },
                 ]).map(({ label, key, empty }) => {
-                  const items = projectStats.filter(p => p.category === key);
+                  const items = orderedProjects
+                    .filter(p => p.category === key)
+                    .map(p => ({ ...p, count: visitors.filter(v => v.project_id === p.id).length }))
+                    .sort((a, b) => a.sort_order - b.sort_order);
                   return (
                     <div key={key}>
                       <div className="flex items-center justify-between mb-8">
@@ -571,16 +574,18 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                               onDrop={async () => {
                                 const drag = dragRef.current;
                                 if (!drag || drag.id === p.id || drag.section !== key) return;
-                                const reordered = orderedProjects.filter(x => x.category === key);
-                                const fromIdx = reordered.findIndex(x => x.id === drag.id);
-                                const toIdx = reordered.findIndex(x => x.id === p.id);
+                                // items is the already-filtered array for this section
+                                const fromIdx = items.findIndex(x => x.id === drag.id);
+                                const toIdx   = items.findIndex(x => x.id === p.id);
                                 if (fromIdx === -1 || toIdx === -1) return;
+                                const reordered = [...items];
                                 reordered.splice(toIdx, 0, reordered.splice(fromIdx, 1)[0]);
                                 // Optimistic update — show new order immediately
-                                setOrderedProjects(prev => [
-                                  ...prev.filter(x => x.category !== key),
-                                  ...reordered
-                                ]);
+                                setOrderedProjects(prev => {
+                                  const others = prev.filter(x => x.category !== key);
+                                  const withNewOrder = reordered.map((item, i) => ({ ...item, sort_order: i }));
+                                  return [...others, ...withNewOrder];
+                                });
                                 // Persist to DB
                                 await updateProjectOrder(reordered.map(x => x.id));
                                 dragRef.current = null;
