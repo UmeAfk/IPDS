@@ -185,8 +185,16 @@ export async function deleteProject(id: string): Promise<{ error: string | null 
   return { error: error?.message ?? null };
 }
 
-export async function updateProjectOrder(ids: string[]): Promise<void> {
-  await Promise.all(ids.map((id, i) => supabase.from("projects").update({ sort_order: i }).eq("id", id)));
+export async function updateProjectOrder(ids: string[], category: "ongoing" | "key"): Promise<void> {
+  const res = await fetch("/api/admin/update-project-order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids, category }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to update project order");
+  }
 }
 
 // ── Access Control (Auth) ──────────────────────────────────────────────────

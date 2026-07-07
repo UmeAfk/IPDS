@@ -583,11 +583,12 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
                                 // Optimistic update — show new order immediately
                                 setOrderedProjects(prev => {
                                   const others = prev.filter(x => x.category !== key);
-                                  const withNewOrder = reordered.map((item, i) => ({ ...item, sort_order: i }));
+                                  const base = key === "key" ? 1000 : 0;
+                                  const withNewOrder = reordered.map((item, i) => ({ ...item, sort_order: base + i }));
                                   return [...others, ...withNewOrder];
                                 });
                                 // Persist to DB
-                                await updateProjectOrder(reordered.map(x => x.id));
+                                await updateProjectOrder(reordered.map(x => x.id), key);
                                 dragRef.current = null;
                                 setDragOver(null);
                               }}

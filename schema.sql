@@ -1,10 +1,55 @@
 -- ============================================================
--- IPDS — Full Database Schema
--- Run this in Supabase SQL Editor to reset and recreate all tables
+-- IPDS — COMPLETE RESET + FRESH SCHEMA
+-- Run this in Supabase SQL Editor to start clean
 -- ============================================================
 
--- ── Projects Table ────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS projects (
+-- ⚠️  WARNING: This DELETES ALL EXISTING DATA  ⚠️
+-- ============================================================
+
+-- Wipe storage policies (buckets + objects are reused via on conflict do nothing)
+drop policy if exists "Public read project-images" on storage.objects;
+drop policy if exists "Public read site-updates" on storage.objects;
+drop policy if exists "Auth upload project-images" on storage.objects;
+drop policy if exists "Auth upload site-updates" on storage.objects;
+drop policy if exists "Auth delete project-images" on storage.objects;
+drop policy if exists "Auth delete site-updates" on storage.objects;
+
+-- Wipe tables
+DROP TABLE IF EXISTS enquiries CASCADE;
+DROP TABLE IF EXISTS visitors CASCADE;
+DROP TABLE IF EXISTS site_content CASCADE;
+DROP TABLE IF EXISTS project_auth CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+
+-- ============================================================
+-- STORAGE BUCKETS
+-- ============================================================
+
+insert into storage.buckets (id, name, public) values ('project-images', 'project-images', true) on conflict (id) do nothing;
+insert into storage.buckets (id, name, public) values ('site-updates', 'site-updates', true) on conflict (id) do nothing;
+
+-- Public read access for both buckets
+drop policy if exists "Public read project-images" on storage.objects;
+create policy "Public read project-images" on storage.objects for select using (bucket_id = 'project-images');
+drop policy if exists "Public read site-updates" on storage.objects;
+create policy "Public read site-updates" on storage.objects for select using (bucket_id = 'site-updates');
+
+-- Authenticated users can upload/delete
+drop policy if exists "Auth upload project-images" on storage.objects;
+create policy "Auth upload project-images" on storage.objects for insert with check (bucket_id = 'project-images' and auth.role() = 'authenticated');
+drop policy if exists "Auth upload site-updates" on storage.objects;
+create policy "Auth upload site-updates" on storage.objects for insert with check (bucket_id = 'site-updates' and auth.role() = 'authenticated');
+drop policy if exists "Auth delete project-images" on storage.objects;
+create policy "Auth delete project-images" on storage.objects for delete using (bucket_id = 'project-images' and auth.role() = 'authenticated');
+drop policy if exists "Auth delete site-updates" on storage.objects;
+create policy "Auth delete site-updates" on storage.objects for delete using (bucket_id = 'site-updates' and auth.role() = 'authenticated');
+
+-- ============================================================
+-- TABLES
+-- ============================================================
+
+-- ── Projects ──────────────────────────────────────────────
+CREATE TABLE projects (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT DEFAULT '',
@@ -34,8 +79,8 @@ CREATE TABLE IF NOT EXISTS projects (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ── Project Auth Table ────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS project_auth (
+-- ── Project Auth (password/OTP/token access) ─────────────
+CREATE TABLE project_auth (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   project_id uuid REFERENCES projects(id) ON DELETE CASCADE,
   email TEXT,
@@ -46,8 +91,8 @@ CREATE TABLE IF NOT EXISTS project_auth (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ── Site Content Table ────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS site_content (
+-- ── Site Content (intro, stats, videos, testimonials, transformation, settings, contact) ──
+CREATE TABLE site_content (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   section TEXT NOT NULL,
   title TEXT,
@@ -63,8 +108,8 @@ CREATE TABLE IF NOT EXISTS site_content (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ── Visitors Table ────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS visitors (
+-- ── Visitors (page view tracking) ────────────────────────
+CREATE TABLE visitors (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT,
   email TEXT,
@@ -74,8 +119,8 @@ CREATE TABLE IF NOT EXISTS visitors (
   timestamp TIMESTAMPTZ DEFAULT now()
 );
 
--- ── Enquiries Table ───────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS enquiries (
+-- ── Enquiries (contact form submissions) ─────────────────
+CREATE TABLE enquiries (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT,
   email TEXT,
@@ -85,63 +130,136 @@ CREATE TABLE IF NOT EXISTS enquiries (
   timestamp TIMESTAMPTZ DEFAULT now()
 );
 
--- ── Indexes ───────────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_projects_status ON projects(status);
-CREATE INDEX IF NOT EXISTS idx_projects_category ON projects(category);
-CREATE INDEX IF NOT EXISTS idx_projects_sort ON projects(sort_order);
-CREATE INDEX IF NOT EXISTS idx_site_content_section ON site_content(section);
-CREATE INDEX IF NOT EXISTS idx_site_content_active ON site_content(is_active);
-CREATE INDEX IF NOT EXISTS idx_site_content_sort ON site_content(sort_order);
-CREATE INDEX IF NOT EXISTS idx_project_auth_token ON project_auth(token);
-CREATE INDEX IF NOT EXISTS idx_visitors_timestamp ON visitors(timestamp);
-CREATE INDEX IF NOT EXISTS idx_enquiries_timestamp ON enquiries(timestamp);
-
 -- ============================================================
--- SEED DATA — Introductory Content
+-- INDEXES
 -- ============================================================
 
--- Intro
+CREATE INDEX idx_projects_status ON projects(status);
+CREATE INDEX idx_projects_category ON projects(category);
+CREATE INDEX idx_projects_sort ON projects(sort_order);
+CREATE INDEX idx_site_content_section ON site_content(section);
+CREATE INDEX idx_site_content_active ON site_content(is_active);
+CREATE INDEX idx_site_content_sort ON site_content(sort_order);
+CREATE INDEX idx_project_auth_token ON project_auth(token);
+CREATE INDEX idx_visitors_timestamp ON visitors(timestamp);
+CREATE INDEX idx_enquiries_timestamp ON enquiries(timestamp);
+
+-- ============================================================
+-- ROW LEVEL SECURITY (RLS)
+-- ============================================================
+
+-- Enable RLS on all tables
+ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE project_auth ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
+ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
+
+-- ── Projects: anon can read published only; full access for authenticated ──
+CREATE POLICY "anon read published projects"
+  ON projects FOR SELECT
+  USING (status = 'published' OR auth.role() = 'authenticated');
+
+CREATE POLICY "auth all projects"
+  ON projects FOR ALL
+  USING (auth.role() = 'authenticated');
+
+-- ── Project Auth: anon can read valid tokens; authenticated full access ──
+CREATE POLICY "anon read valid project_auth"
+  ON project_auth FOR SELECT
+  USING (expires_at IS NULL OR expires_at > now());
+
+CREATE POLICY "auth all project_auth"
+  ON project_auth FOR ALL
+  USING (auth.role() = 'authenticated');
+
+-- ── Site Content: anon can read active; authenticated full access ──
+CREATE POLICY "anon read active site_content"
+  ON site_content FOR SELECT
+  USING (is_active = true OR auth.role() = 'authenticated');
+
+CREATE POLICY "auth all site_content"
+  ON site_content FOR ALL
+  USING (auth.role() = 'authenticated');
+
+-- ── Visitors: anon can insert; authenticated can read/delete ──
+CREATE POLICY "anon insert visitors"
+  ON visitors FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "auth read visitors"
+  ON visitors FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "auth delete visitors"
+  ON visitors FOR DELETE
+  USING (auth.role() = 'authenticated');
+
+-- ── Enquiries: anon can insert; authenticated can read/delete ──
+CREATE POLICY "anon insert enquiries"
+  ON enquiries FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "auth read enquiries"
+  ON enquiries FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "auth delete enquiries"
+  ON enquiries FOR DELETE
+  USING (auth.role() = 'authenticated');
+
+-- ============================================================
+-- SEED DATA
+-- ============================================================
+
+-- ── Hero / Settings ───────────────────────────────────────
+INSERT INTO site_content (section, title, body, sort_order, is_active) VALUES
+('settings', 'hero_image', '', 10, true),
+('settings', 'projects_pipeline_text', '', 11, true),
+('settings', 'meta_description', 'Pune''s leading self-redevelopment consultancy. 150+ housing society projects delivered across Maharashtra with full transparency and zero compromise.', 12, true);
+
+-- ── Intro ─────────────────────────────────────────────────
 INSERT INTO site_content (section, title, body, sort_order, is_active) VALUES
 ('intro', 'Redefining Redevelopment', 'IPDS helps societies become their own developer, while providing the technical, legal, financial, and project management expertise required to successfully execute a redevelopment project.', 0, true);
 
--- Stats
+-- ── Stats ─────────────────────────────────────────────────
 INSERT INTO site_content (section, title, subtitle, sort_order, is_active) VALUES
 ('stats', 'Projects Delivered', '50+', 0, true),
 ('stats', 'Happy Clients', '100+', 1, true),
 ('stats', 'Years of Excellence', '8+', 2, true),
 ('stats', 'Projects in Pipeline', '150+', 3, true);
 
--- Testimonials
+-- ── Testimonials ──────────────────────────────────────────
 INSERT INTO site_content (section, author_name, author_role, body, sort_order, is_active) VALUES
 ('testimonial', 'Ramesh Patil', 'Secretary, Jyoti Villa CHS', 'IPDS guided us through every step of our society redevelopment. The transparency and execution quality were outstanding.', 0, true),
 ('testimonial', 'Sunita Desai', 'Chairman, Shree Sadhana Society', 'We had zero experience with redevelopment. IPDS made it seamless — from legal clarity to final handover.', 1, true),
 ('testimonial', 'Anil Joshi', 'Member, Prasad Apartment', 'The team at IPDS truly understands what society members need. They turned our old building into a dream home.', 2, true);
 
--- Transformation stages
+-- ── Transformation Stages ─────────────────────────────────
 INSERT INTO site_content (section, title, body, media_url, sort_order, is_active) VALUES
-('transformation', 'Pune''s 1st Self Redevelopment Hemanti Transformation', 'Old Building', '/images/Old Building.png', 0, true),
-('transformation', NULL, 'Design Stage', '/images/Design Stage.png', 1, true),
-('transformation', NULL, 'Executed Without Differing to Design', '/images/Executed Without Differeing to design.png', 2, true);
+('transformation', 'Pune''s 1st Self Redevelopment Hemanti Transformation', 'Old Building', '', 0, true),
+('transformation', NULL, 'Design Stage', '', 1, true),
+('transformation', NULL, 'Executed Without Differing to Design', '', 2, true);
 
--- ============================================================
--- SEED DATA — Key Projects (Portfolio)
--- ============================================================
+-- ── Contact Details ───────────────────────────────────────
+INSERT INTO site_content (section, title, body, sort_order, is_active) VALUES
+('contact', 'email', 'admin@i-pds.com', 0, true),
+('contact', 'phone', '020-66268888', 1, true),
+('contact', 'address', 'Pune, Maharashtra', 2, true);
 
+-- ── Key Projects (Portfolio) ──────────────────────────────
 INSERT INTO projects (title, description, location, long_description, image_url, type, category, status, sort_order, is_active) VALUES
-('State Bank Nagar', 'Residential project in Kothrud, Pune with 1500 residential units.', 'Kothrud, Pune', 'State Bank Nagar, Alkapuri Society, Kothrud, Pune, Maharashtra 411038 (DIGIPIN: 4FP-4CK-PL63). A large-scale residential redevelopment project featuring 1500 residential units in the heart of Kothrud.', '/images/JyotiVilla.jpg', 'Residential', 'key', 'published', 0, true),
-('Affordable Housing for Gujarat Housing Board', 'Affordable housing project in Sola-Gota, Ahmedabad, Gujarat.', 'Ahmedabad, Gujarat', 'Construction of 124 Shops at Sola & 12 at Gota: Construction of multistoried RCC framed structure residential flats including all infrastructure work at Sola-Gota, Ahmedabad, Gujarat.', '/images/ShreeSadhna.jpg', 'Residential', 'key', 'published', 1, true),
-('Abhiruchi Mall & Multiplex', 'Commercial mall and multiplex on Sinhagad Road, Pune.', 'Sinhagad Road, Pune', 'S.No. 59 1C, Sinhgad Rd, Bhide Baug, Wadgaon Budruk, Vadgaon Budruk, Pune, Maharashtra 411041. A commercial mall and multiplex development on Sinhagad Road.', '/images/JyotiVillaNight.jpg', 'Commercial', 'key', 'published', 2, true),
-('Vision One', 'Commercial project in Tathawade, Pune near Wakad.', 'Tathawade, Pune', 'Bhumkar Chowk Rd, near GINGER PUNE, Wakad, Pune, Pimpri-Chinchwad, Maharashtra 411033. A commercial project in the rapidly growing Tathawade-Wakad corridor.', '/images/ShreeSadhnaNight.jpg', 'Commercial', 'key', 'published', 3, true),
-('Kapil Zenith IT Complex', 'IT complex in Bavdhan, Pune.', 'Bavdhan, Pune', 'Vaidehi Enclave, Bavdhan, Pune, Maharashtra 411021. An IT complex in the Bavdhan area of Pune.', '/images/JyotiVilla.jpg', 'Commercial', 'key', 'published', 4, true),
-('Maharshi Karve Stree Shikshan Sanstha', 'Institutional campus in Ambegaon, Pune for women''s education.', 'Ambegaon, Pune', 'Sr. 13/1/2, Narhe-Ambegaon, Opposite Vision English Medium School, Pune - 411041. An educational institutional campus for Maharshi Karve Stree Shikshan Sanstha.', '/images/ShreeSadhna.jpg', 'Institutional', 'key', 'published', 5, true),
-('Abhinav School Extension', 'School extension in Erandawane, Pune.', 'Erandawane, Pune', '102/103, Off Paud Phata Road, behind Dashbhuja Ganapati Temple, Bharatkunj - 2, Erandwane, Pune, Maharashtra 411038. Extension of Abhinav School in Erandawane.', '/images/JyotiVillaNight.jpg', 'Institutional', 'key', 'published', 6, true),
-('Huzurpaga Girls Junior College', 'Girls junior college in Narayan Peth, Pune.', 'Narayan Peth, Pune', '9, 68, Laxmi Road, Narayan Peth, Pune, Maharashtra 411030. A girls junior college located on Laxmi Road in the historic Narayan Peth area.', '/images/ShreeSadhnaNight.jpg', 'Institutional', 'key', 'published', 7, true),
-('Shreemant Dagadusheth Halwai Ganpati Mandir', 'Renowned Ganpati temple in Budhwar Peth, Pune.', 'Budhwar Peth, Pune', 'Ganpati Bhavan, 250, Chhatrapati Shivaji Maharaj Rd, Mehunpura, Sadashiv Peth, Pune, Maharashtra 411002. The iconic and renowned Shreemant Dagadusheth Halwai Ganpati Mandir in Budhwar Peth.', '/images/JyotiVilla.jpg', 'Temple', 'key', 'published', 8, true);
+('State Bank Nagar', 'Residential project in Kothrud, Pune with 1500 residential units.', 'Kothrud, Pune', 'State Bank Nagar, Alkapuri Society, Kothrud, Pune, Maharashtra 411038 (DIGIPIN: 4FP-4CK-PL63). A large-scale residential redevelopment project featuring 1500 residential units in the heart of Kothrud.', '', 'Residential', 'key', 'published', 0, true),
+('Affordable Housing for Gujarat Housing Board', 'Affordable housing project in Sola-Gota, Ahmedabad, Gujarat.', 'Ahmedabad, Gujarat', 'Construction of 124 Shops at Sola & 12 at Gota: Construction of multistoried RCC framed structure residential flats including all infrastructure work at Sola-Gota, Ahmedabad, Gujarat.', '', 'Residential', 'key', 'published', 1, true),
+('Abhiruchi Mall & Multiplex', 'Commercial mall and multiplex on Sinhagad Road, Pune.', 'Sinhagad Road, Pune', 'S.No. 59 1C, Sinhgad Rd, Bhide Baug, Wadgaon Budruk, Vadgaon Budruk, Pune, Maharashtra 411041. A commercial mall and multiplex development on Sinhagad Road.', '', 'Commercial', 'key', 'published', 2, true),
+('Vision One', 'Commercial project in Tathawade, Pune near Wakad.', 'Tathawade, Pune', 'Bhumkar Chowk Rd, near GINGER PUNE, Wakad, Pune, Pimpri-Chinchwad, Maharashtra 411033. A commercial project in the rapidly growing Tathawade-Wakad corridor.', '', 'Commercial', 'key', 'published', 3, true),
+('Kapil Zenith IT Complex', 'IT complex in Bavdhan, Pune.', 'Bavdhan, Pune', 'Vaidehi Enclave, Bavdhan, Pune, Maharashtra 411021. An IT complex in the Bavdhan area of Pune.', '', 'Commercial', 'key', 'published', 4, true),
+('Maharshi Karve Stree Shikshan Sanstha', 'Institutional campus in Ambegaon, Pune for women''s education.', 'Ambegaon, Pune', 'Sr. 13/1/2, Narhe-Ambegaon, Opposite Vision English Medium School, Pune - 411041. An educational institutional campus for Maharshi Karve Stree Shikshan Sanstha.', '', 'Institutional', 'key', 'published', 5, true),
+('Abhinav School Extension', 'School extension in Erandawane, Pune.', 'Erandawane, Pune', '102/103, Off Paud Phata Road, behind Dashbhuja Ganapati Temple, Bharatkunj - 2, Erandwane, Pune, Maharashtra 411038. Extension of Abhinav School in Erandawane.', '', 'Institutional', 'key', 'published', 6, true),
+('Huzurpaga Girls Junior College', 'Girls junior college in Narayan Peth, Pune.', 'Narayan Peth, Pune', '9, 68, Laxmi Road, Narayan Peth, Pune, Maharashtra 411030. A girls junior college located on Laxmi Road in the historic Narayan Peth area.', '', 'Institutional', 'key', 'published', 7, true),
+('Shreemant Dagadusheth Halwai Ganpati Mandir', 'Renowned Ganpati temple in Budhwar Peth, Pune.', 'Budhwar Peth, Pune', 'Ganpati Bhavan, 250, Chhatrapati Shivaji Maharaj Rd, Mehunpura, Sadashiv Peth, Pune, Maharashtra 411002. The iconic and renowned Shreemant Dagadusheth Halwai Ganpati Mandir in Budhwar Peth.', '', 'Temple', 'key', 'published', 8, true);
 
--- ============================================================
--- SEED DATA — Ongoing Projects
--- ============================================================
-
+-- ── Ongoing Projects ──────────────────────────────────────
 INSERT INTO projects (title, description, location, type, category, status, sort_order, is_active) VALUES
 ('Manoj CHS', 'Housing redevelopment in PCMC.', 'PCMC', 'Residential', 'ongoing', 'published', 0, true),
 ('Daulat Co-operative Housing Society', 'Housing redevelopment in Kothrud.', 'Kothrud', 'Residential', 'ongoing', 'published', 1, true),
@@ -153,3 +271,7 @@ INSERT INTO projects (title, description, location, type, category, status, sort
 ('Tejal Co-operative Housing Society', 'Housing redevelopment in Model Colony.', 'Model Colony', 'Residential', 'ongoing', 'published', 7, true),
 ('Parinita Co-operative Housing Society', 'Housing redevelopment in Aundh.', 'Aundh', 'Residential', 'ongoing', 'published', 8, true),
 ('Prasad Apartment', 'Housing redevelopment in Nal-Stop.', 'Nal-Stop', 'Residential', 'ongoing', 'published', 9, true);
+
+-- ============================================================
+-- DONE
+-- ============================================================
