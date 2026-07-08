@@ -1,25 +1,7 @@
 -- ============================================================
--- IPDS — COMPLETE RESET + FRESH SCHEMA
--- Run this in Supabase SQL Editor to start clean
+-- IPDS — COMPLETE FRESH SCHEMA
+-- Run this in Supabase SQL Editor after nuke.sql
 -- ============================================================
-
--- ⚠️  WARNING: This DELETES ALL EXISTING DATA  ⚠️
--- ============================================================
-
--- Wipe storage policies (buckets + objects are reused via on conflict do nothing)
-drop policy if exists "Public read project-images" on storage.objects;
-drop policy if exists "Public read site-updates" on storage.objects;
-drop policy if exists "Auth upload project-images" on storage.objects;
-drop policy if exists "Auth upload site-updates" on storage.objects;
-drop policy if exists "Auth delete project-images" on storage.objects;
-drop policy if exists "Auth delete site-updates" on storage.objects;
-
--- Wipe tables
-DROP TABLE IF EXISTS enquiries CASCADE;
-DROP TABLE IF EXISTS visitors CASCADE;
-DROP TABLE IF EXISTS site_content CASCADE;
-DROP TABLE IF EXISTS project_auth CASCADE;
-DROP TABLE IF EXISTS projects CASCADE;
 
 -- ============================================================
 -- STORAGE BUCKETS
@@ -28,13 +10,11 @@ DROP TABLE IF EXISTS projects CASCADE;
 insert into storage.buckets (id, name, public) values ('project-images', 'project-images', true) on conflict (id) do nothing;
 insert into storage.buckets (id, name, public) values ('site-updates', 'site-updates', true) on conflict (id) do nothing;
 
--- Public read access for both buckets
 drop policy if exists "Public read project-images" on storage.objects;
 create policy "Public read project-images" on storage.objects for select using (bucket_id = 'project-images');
 drop policy if exists "Public read site-updates" on storage.objects;
 create policy "Public read site-updates" on storage.objects for select using (bucket_id = 'site-updates');
 
--- Authenticated users can upload/delete
 drop policy if exists "Auth upload project-images" on storage.objects;
 create policy "Auth upload project-images" on storage.objects for insert with check (bucket_id = 'project-images' and auth.role() = 'authenticated');
 drop policy if exists "Auth upload site-updates" on storage.objects;
@@ -145,71 +125,7 @@ CREATE INDEX idx_visitors_timestamp ON visitors(timestamp);
 CREATE INDEX idx_enquiries_timestamp ON enquiries(timestamp);
 
 -- ============================================================
--- ROW LEVEL SECURITY (RLS)
--- ============================================================
-
--- Enable RLS on all tables
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE project_auth ENABLE ROW LEVEL SECURITY;
-ALTER TABLE site_content ENABLE ROW LEVEL SECURITY;
-ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
-ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
-
--- ── Projects: anon can read published only; full access for authenticated ──
-CREATE POLICY "anon read published projects"
-  ON projects FOR SELECT
-  USING (status = 'published' OR auth.role() = 'authenticated');
-
-CREATE POLICY "auth all projects"
-  ON projects FOR ALL
-  USING (auth.role() = 'authenticated');
-
--- ── Project Auth: anon can read valid tokens; authenticated full access ──
-CREATE POLICY "anon read valid project_auth"
-  ON project_auth FOR SELECT
-  USING (expires_at IS NULL OR expires_at > now());
-
-CREATE POLICY "auth all project_auth"
-  ON project_auth FOR ALL
-  USING (auth.role() = 'authenticated');
-
--- ── Site Content: anon can read active; authenticated full access ──
-CREATE POLICY "anon read active site_content"
-  ON site_content FOR SELECT
-  USING (is_active = true OR auth.role() = 'authenticated');
-
-CREATE POLICY "auth all site_content"
-  ON site_content FOR ALL
-  USING (auth.role() = 'authenticated');
-
--- ── Visitors: anon can insert; authenticated can read/delete ──
-CREATE POLICY "anon insert visitors"
-  ON visitors FOR INSERT
-  WITH CHECK (true);
-
-CREATE POLICY "auth read visitors"
-  ON visitors FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "auth delete visitors"
-  ON visitors FOR DELETE
-  USING (auth.role() = 'authenticated');
-
--- ── Enquiries: anon can insert; authenticated can read/delete ──
-CREATE POLICY "anon insert enquiries"
-  ON enquiries FOR INSERT
-  WITH CHECK (true);
-
-CREATE POLICY "auth read enquiries"
-  ON enquiries FOR SELECT
-  USING (auth.role() = 'authenticated');
-
-CREATE POLICY "auth delete enquiries"
-  ON enquiries FOR DELETE
-  USING (auth.role() = 'authenticated');
-
--- ============================================================
--- SEED DATA
+-- TABLES
 -- ============================================================
 
 -- ── Hero / Settings ───────────────────────────────────────
