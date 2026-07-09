@@ -690,10 +690,14 @@ export default function ContentTab() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={async () => {
+                  const all = await getAllSiteContent();
+                  const heroRow = all.find(c => c.section === "settings" && c.title === "hero_image");
+                  const pipeRow = all.find(c => c.section === "settings" && c.title === "projects_pipeline_text");
+                  const metaRow = all.find(c => c.section === "settings" && c.title === "meta_description");
                   await Promise.all([
-                    upsertSiteContent({ section: "settings", title: "hero_image", body: heroImageUrl, sort_order: 10, is_active: true }),
-                    upsertSiteContent({ section: "settings", title: "projects_pipeline_text", body: pipelineText, sort_order: 11, is_active: true }),
-                    upsertSiteContent({ section: "settings", title: "meta_description", body: metaDescription, sort_order: 12, is_active: true }),
+                    upsertSiteContent({ id: heroRow?.id, section: "settings", title: "hero_image", body: heroImageUrl, sort_order: 10, is_active: true }),
+                    upsertSiteContent({ id: pipeRow?.id, section: "settings", title: "projects_pipeline_text", body: pipelineText, sort_order: 11, is_active: true }),
+                    upsertSiteContent({ id: metaRow?.id, section: "settings", title: "meta_description", body: metaDescription, sort_order: 12, is_active: true }),
                   ]);
                   showToast("Settings saved");
                   fetchAll();
@@ -746,10 +750,14 @@ export default function ContentTab() {
             </div>
             <button
               onClick={async () => {
+                const all = await getAllSiteContent();
+                const emailRow = all.find(c => c.section === "contact" && c.title === "email");
+                const phoneRow = all.find(c => c.section === "contact" && c.title === "phone");
+                const addrRow  = all.find(c => c.section === "contact" && c.title === "address");
                 await Promise.all([
-                  upsertSiteContent({ section: "contact", title: "email", body: contactEmail, sort_order: 0, is_active: true }),
-                  upsertSiteContent({ section: "contact", title: "phone", body: contactPhone, sort_order: 1, is_active: true }),
-                  upsertSiteContent({ section: "contact", title: "address", body: contactAddress, sort_order: 2, is_active: true }),
+                  upsertSiteContent({ id: emailRow?.id, section: "contact", title: "email", body: contactEmail, sort_order: 0, is_active: true }),
+                  upsertSiteContent({ id: phoneRow?.id, section: "contact", title: "phone", body: contactPhone, sort_order: 1, is_active: true }),
+                  upsertSiteContent({ id: addrRow?.id, section: "contact", title: "address", body: contactAddress, sort_order: 2, is_active: true }),
                 ]);
                 showToast("Contact details saved");
                 fetchAll();

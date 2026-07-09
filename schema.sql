@@ -15,14 +15,14 @@ create policy "Public read project-images" on storage.objects for select using (
 drop policy if exists "Public read site-updates" on storage.objects;
 create policy "Public read site-updates" on storage.objects for select using (bucket_id = 'site-updates');
 
-drop policy if exists "Auth upload project-images" on storage.objects;
-create policy "Auth upload project-images" on storage.objects for insert with check (bucket_id = 'project-images' and auth.role() = 'authenticated');
-drop policy if exists "Auth upload site-updates" on storage.objects;
-create policy "Auth upload site-updates" on storage.objects for insert with check (bucket_id = 'site-updates' and auth.role() = 'authenticated');
-drop policy if exists "Auth delete project-images" on storage.objects;
-create policy "Auth delete project-images" on storage.objects for delete using (bucket_id = 'project-images' and auth.role() = 'authenticated');
-drop policy if exists "Auth delete site-updates" on storage.objects;
-create policy "Auth delete site-updates" on storage.objects for delete using (bucket_id = 'site-updates' and auth.role() = 'authenticated');
+drop policy if exists "Anon upload project-images" on storage.objects;
+create policy "Anon upload project-images" on storage.objects for insert with check (bucket_id = 'project-images');
+drop policy if exists "Anon upload site-updates" on storage.objects;
+create policy "Anon upload site-updates" on storage.objects for insert with check (bucket_id = 'site-updates');
+drop policy if exists "Anon delete project-images" on storage.objects;
+create policy "Anon delete project-images" on storage.objects for delete using (bucket_id = 'project-images');
+drop policy if exists "Anon delete site-updates" on storage.objects;
+create policy "Anon delete site-updates" on storage.objects for delete using (bucket_id = 'site-updates');
 
 -- ============================================================
 -- TABLES
@@ -125,7 +125,7 @@ CREATE INDEX idx_visitors_timestamp ON visitors(timestamp);
 CREATE INDEX idx_enquiries_timestamp ON enquiries(timestamp);
 
 -- ============================================================
--- TABLES
+-- SEED DATA
 -- ============================================================
 
 -- ── Hero / Settings ───────────────────────────────────────
