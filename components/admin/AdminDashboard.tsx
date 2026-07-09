@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Users, Eye, BarChart2, Download, LogOut,
   Search, ChevronDown, RefreshCw, ExternalLink,
-  TrendingUp, Calendar, Layers, ArrowUpRight,
-  Activity, Clock, Globe, ArrowRight, Settings,
-  Type, Image as ImageIcon, Layout as LayoutIcon, LayoutTemplate,
-  Save, Mail,
+  TrendingUp, Layers, ArrowUpRight,
+  Activity, Clock, Globe, Settings,
+  Image as ImageIcon, Layout as LayoutIcon, LayoutTemplate,
+  Mail,
   Link as LinkIcon, Plus, EyeOff
 } from "lucide-react";
 import { supabase, getProjects, getProjectToken, updateProject, updateProjectOrder, getEnquiries, deleteEnquiry, saveVisitor, saveEnquiry, type Project, type Enquiry } from "@/lib/supabase";

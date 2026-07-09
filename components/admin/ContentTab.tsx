@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus, Trash2, Save, Upload, Check, X } from "lucide-react";
-import { getSiteContent, getAllSiteContent, upsertSiteContent, deleteSiteContent, uploadSiteContentMedia, setSiteFont, type SiteContent } from "@/lib/supabase";
+import { getAllSiteContent, upsertSiteContent, deleteSiteContent, uploadSiteContentMedia, setSiteFont, type SiteContent } from "@/lib/supabase";
 
 const DISPLAY_FONTS = [
   { name: "Arsenal", label: "Arsenal (Default)", style: "'Arsenal', serif" },
@@ -426,7 +426,7 @@ export default function ContentTab() {
                   {saving ? "Uploading..." : "Upload Image or Video"}
                   <input
                     type="file"
-                    accept="image/*,video/mp4"
+                    accept="image/*,video/mp4,video/webm"
                     className="hidden"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];

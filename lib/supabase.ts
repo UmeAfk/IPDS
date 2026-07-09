@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { slugify } from "./slugify";
 
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
@@ -87,16 +86,6 @@ export async function getProjects(): Promise<Project[]> {
   return data ?? [];
 }
 
-export async function getActiveProjects(): Promise<Project[]> {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id,title,description,image_url,image_url_dark,image_url_light,location,year,type,featured,is_active,sort_order,access_type,stream_url,status,story,has_live_updates,access_password,category")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
-  if (error) console.error("getActiveProjects:", error.message);
-  return (data ?? []) as Project[];
-}
-
 export async function getProjectsByCategory(category: "ongoing" | "key"): Promise<Project[]> {
   const { data, error } = await supabase
     .from("projects")
@@ -106,15 +95,6 @@ export async function getProjectsByCategory(category: "ongoing" | "key"): Promis
     .order("sort_order", { ascending: true });
   if (error) console.error("getProjectsByCategory:", error.message);
   return (data ?? []) as Project[];
-}
-
-export async function getProjectBySlug(slug: string): Promise<Project | null> {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .order("sort_order", { ascending: true });
-  if (error) return null;
-  return (data ?? []).find(p => slugify(p.title) === slug) ?? null;
 }
 
 export async function getProjectByToken(token: string): Promise<{ project: Project | null; auth: ProjectAuth | null }> {
@@ -217,24 +197,6 @@ export async function createOtp(projectId: string, email: string): Promise<{ cod
   return { code, error: error?.message ?? null };
 }
 
-export async function verifyOtp(projectIdOrToken: string, code: string): Promise<{ valid: boolean }> {
-  // Try finding by token first (legacy/link) then projectId
-  const { data } = await supabase
-    .from("project_auth")
-    .select("*")
-    .or(`token.eq.${projectIdOrToken},project_id.eq.${projectIdOrToken}`)
-    .eq("code", code)
-    .eq("used", false)
-    .gte("expires_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!data) return { valid: false };
-  await supabase.from("project_auth").update({ used: true }).eq("id", data.id);
-  return { valid: true };
-}
-
 export async function getProjectToken(projectId: string): Promise<string> {
   // Get existing or create a permanent one
   const { data } = await supabase
@@ -267,29 +229,6 @@ export async function saveVisitor(data: VisitorEntry & { timestamp?: string }) {
   return { error: error?.message ?? null };
 }
 
-export async function getVisitors() {
-  const { data, error } = await supabase
-    .from("visitors").select("*").order("timestamp", { ascending: false });
-  return { data: data ?? [], error };
-}
-
-export async function getVisitorStats() {
-  const { data } = await supabase.from("visitors").select("project,project_id,timestamp,email");
-  if (!data) return { total: 0, unique: 0, byProject: [], recent7: 0 };
-  const total   = data.length;
-  const unique  = new Set(data.map((v: { email: string }) => v.email)).size;
-  const recent7 = data.filter((v: { timestamp: string }) =>
-    (Date.now() - new Date(v.timestamp).getTime()) < 7 * 24 * 60 * 60 * 1000
-  ).length;
-  const byProject = Object.entries(
-    data.reduce((acc: Record<string, number>, v: { project: string }) => {
-      acc[v.project] = (acc[v.project] ?? 0) + 1; return acc;
-    }, {})
-  ).map(([project, count]) => ({ project, count: count as number }))
-   .sort((a, b) => b.count - a.count);
-  return { total, unique, byProject, recent7 };
-}
- 
 // ── Enquiries ─────────────────────────────────────────────────────────────────
 export interface Enquiry {
   id: string;
@@ -372,6 +311,11 @@ export async function deleteSiteContent(id: string) {
 }
 
 export async function uploadSiteContentMedia(file: File, section: string) {
+  const isVideo = file.type.startsWith("video/");
+  const maxSize = isVideo ? 80 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    return { url: "", error: `File too large. Max ${isVideo ? "80MB" : "10MB"}.` };
+  }
   const ext = file.name.split(".").pop();
   const path = `${section}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage
@@ -395,10 +339,6 @@ export async function getProjectBlog(projectId: string): Promise<Project | null>
 
 export async function updateProjectBlogOverview(projectId: string, patch: Partial<Project>) {
   return updateProject(projectId, patch);
-}
-
-export async function upsertBlogSection(projectId: string, sections: BlogSection[]) {
-  return updateProject(projectId, { narrative_sections: sections });
 }
 
 export async function addSiteUpdate(
@@ -478,21 +418,6 @@ export async function deleteSiteUpdate(projectId: string, mediaUrl: string, exis
   }
   const filtered = existingGallery.filter(u => u.media_url !== mediaUrl);
   return updateProject(projectId, { gallery_updates: filtered });
-}
-
-export async function getSiteFont(type: "display" | "body" | "mono" = "display"): Promise<string> {
-  const defaults: Record<string, string> = {
-    display: "Arsenal",
-    body: "Rubik",
-    mono: "monospace",
-  };
-  const { data } = await supabase
-    .from("site_content")
-    .select("body")
-    .eq("section", "settings")
-    .eq("title", `font_${type}`)
-    .single();
-  return data?.body ?? defaults[type];
 }
 
 export async function setSiteFont(type: "display" | "body" | "mono", font: string) {

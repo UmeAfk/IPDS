@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Save, Loader2, Image as ImageIcon, Plus, Trash2, 
   Activity, Upload, Video, Settings, BookOpen, Type,
-  Construction, ExternalLink
 } from "lucide-react";
 import { haptic } from "ios-haptics";
 import Image from "next/image";
@@ -333,7 +332,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                             {mainImage ? <Image src={URL.createObjectURL(mainImage)} alt="Preview" fill unoptimized className="absolute inset-0 object-cover" /> 
                              : project?.image_url ? <Image src={project.image_url} alt={project.title} fill className="absolute inset-0 object-cover" /> 
                              : <><ImageIcon size={24} className="text-muted-foreground/30" /><span className="text-[10px] font-bold text-muted-foreground/50">Select Image</span></>}
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setMainImage(e.target.files?.[0] || null)} />
+                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setMainImage(e.target.files?.[0] || null)} />
                          </div>
                       </div>
                       <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
@@ -342,7 +341,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                             {darkImage ? <Image src={URL.createObjectURL(darkImage)} alt="Dark preview" fill unoptimized className="absolute inset-0 object-cover" /> 
                              : project?.image_url_dark ? <Image src={project.image_url_dark} alt="Dark version" fill className="absolute inset-0 object-cover" /> 
                              : <ImageIcon size={20} className="text-muted-foreground/30" />}
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setDarkImage(e.target.files?.[0] || null)} />
+                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setDarkImage(e.target.files?.[0] || null)} />
                          </div>
                       </div>
                       <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
@@ -351,7 +350,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                             {lightImage ? <Image src={URL.createObjectURL(lightImage)} alt="Light preview" fill unoptimized className="absolute inset-0 object-cover" /> 
                              : project?.image_url_light ? <Image src={project.image_url_light} alt="Light version" fill className="absolute inset-0 object-cover" /> 
                              : <ImageIcon size={20} className="text-muted-foreground/30" />}
-                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setLightImage(e.target.files?.[0] || null)} />
+                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setLightImage(e.target.files?.[0] || null)} />
                          </div>
                       </div>
                    </div>
@@ -413,7 +412,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="p-8 rounded-3xl border border-border bg-secondary/10 flex flex-col items-center justify-center text-center space-y-4 hover:bg-secondary/20 transition-all">
                      <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-muted-foreground"><ImageIcon size={24} /></div>
-                     <input type="file" accept="image/*,video/mp4" className="hidden" id="modal-upload" onChange={async (e) => { 
+                     <input type="file" accept="image/*,video/mp4,video/webm" className="hidden" id="modal-upload" onChange={async (e) => { 
                        const file = e.target.files?.[0]; 
                        if(!file) return; 
                        
