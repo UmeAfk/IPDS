@@ -51,7 +51,31 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
   const [mainImage, setMainImage] = useState<File | null>(null);
   const [darkImage, setDarkImage] = useState<File | null>(null);
   const [lightImage, setLightImage] = useState<File | null>(null);
+  const [mainImageUrl, setMainImageUrl] = useState<string | null>(null);
+  const [darkImageUrl, setDarkImageUrl] = useState<string | null>(null);
+  const [lightImageUrl, setLightImageUrl] = useState<string | null>(null);
   const savingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!mainImage) { setMainImageUrl(null); return; }
+    const url = URL.createObjectURL(mainImage);
+    setMainImageUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [mainImage]);
+
+  useEffect(() => {
+    if (!darkImage) { setDarkImageUrl(null); return; }
+    const url = URL.createObjectURL(darkImage);
+    setDarkImageUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [darkImage]);
+
+  useEffect(() => {
+    if (!lightImage) { setLightImageUrl(null); return; }
+    const url = URL.createObjectURL(lightImage);
+    setLightImageUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [lightImage]);
 
   useEffect(() => {
     return () => { if (savingTimer.current) clearTimeout(savingTimer.current); };
@@ -329,7 +353,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                       <div className="space-y-2">
                          <label className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Main Thumbnail</label>
                          <div className="relative group aspect-video bg-secondary/20 border border-border border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-secondary/30 transition-all">
-                            {mainImage ? <Image src={URL.createObjectURL(mainImage)} alt="Preview" fill unoptimized className="absolute inset-0 object-cover" /> 
+                            {mainImageUrl ? <Image src={mainImageUrl} alt="Preview" fill unoptimized className="absolute inset-0 object-cover" /> 
                              : project?.image_url ? <Image src={project.image_url} alt={project.title} fill className="absolute inset-0 object-cover" /> 
                              : <><ImageIcon size={24} className="text-muted-foreground/30" /><span className="text-[10px] font-bold text-muted-foreground/50">Select Image</span></>}
                             <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setMainImage(e.target.files?.[0] || null)} />
@@ -338,7 +362,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                       <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
                          <label className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Dark Mode (Opt)</label>
                          <div className="relative group aspect-video bg-secondary/20 border border-border border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer">
-                            {darkImage ? <Image src={URL.createObjectURL(darkImage)} alt="Dark preview" fill unoptimized className="absolute inset-0 object-cover" /> 
+                            {darkImageUrl ? <Image src={darkImageUrl} alt="Dark preview" fill unoptimized className="absolute inset-0 object-cover" /> 
                              : project?.image_url_dark ? <Image src={project.image_url_dark} alt="Dark version" fill className="absolute inset-0 object-cover" /> 
                              : <ImageIcon size={20} className="text-muted-foreground/30" />}
                             <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setDarkImage(e.target.files?.[0] || null)} />
@@ -347,7 +371,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                       <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
                          <label className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Light Mode (Opt)</label>
                          <div className="relative group aspect-video bg-secondary/20 border border-border border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer">
-                            {lightImage ? <Image src={URL.createObjectURL(lightImage)} alt="Light preview" fill unoptimized className="absolute inset-0 object-cover" /> 
+                            {lightImageUrl ? <Image src={lightImageUrl} alt="Light preview" fill unoptimized className="absolute inset-0 object-cover" /> 
                              : project?.image_url_light ? <Image src={project.image_url_light} alt="Light version" fill className="absolute inset-0 object-cover" /> 
                              : <ImageIcon size={20} className="text-muted-foreground/30" />}
                             <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setLightImage(e.target.files?.[0] || null)} />

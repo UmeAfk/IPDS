@@ -186,9 +186,11 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     );
     const csv = [header, ...dataRows].join("\n");
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    const blobUrl = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    a.href = blobUrl;
     a.download = `visitors-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+    URL.revokeObjectURL(blobUrl);
   };
 
   const exportEnquiriesCSV = () => {
@@ -202,9 +204,11 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     );
     const csv = [header, ...dataRows].join("\n");
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    const blobUrl = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    a.href = blobUrl;
     a.download = `enquiries-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
+    URL.revokeObjectURL(blobUrl);
   };
 
   const toggleSort = (f: typeof sortField) => {
