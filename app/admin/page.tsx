@@ -34,7 +34,7 @@ export default function AdminPage() {
         setIsAuth(true);
       } else {
         const data = await res.json();
-        setError(data.error || "Invalid administrative passcode contact admin: rushikeshingale2001@gmail.com");
+        setError(data.error || "Invalid administrative passcode.");
       }
     } catch (err) {
       setError("Authentication service unavailable");
@@ -118,7 +118,7 @@ export default function AdminPage() {
           </form>
 
           <p className="mt-10 text-[10px] text-muted-foreground/40 font-medium uppercase tracking-widest">
-            Protected by military-grade encryption
+            contact admin: rushikeshingale2001@gmail.com
           </p>
         </div>
       </motion.div>
