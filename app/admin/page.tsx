@@ -34,7 +34,7 @@ export default function AdminPage() {
         setIsAuth(true);
       } else {
         const data = await res.json();
-        setError(data.error || "Invalid administrative passcode");
+        setError(data.error || "Invalid administrative passcode contact admin: rushikeshingale2001@gmail.com");
       }
     } catch (err) {
       setError("Authentication service unavailable");

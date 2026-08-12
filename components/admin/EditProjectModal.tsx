@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Save, Loader2, Image as ImageIcon, Plus, Trash2, 
-  Activity, Upload, Video, Settings, BookOpen, Type, FileText, Paperclip, Check, ExternalLink, Download
+  Activity, Upload, Video, Settings, BookOpen, Type, FileText, Paperclip, Check, ExternalLink, Download, Play
 } from "lucide-react";
 import { haptic } from "ios-haptics";
 import Image from "next/image";
@@ -109,15 +109,23 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
   useEffect(() => {
     return () => { if (savingTimer.current) clearTimeout(savingTimer.current); };
   }, []);
+
+  // Lock body scroll while the modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   
-  
-  // Downloads & RERA (stored in narrative_sections JSONB — no extra DB columns needed)
-  const dl = project ? getDownloadsConfig(project.narrative_sections || []) : { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false };
+  // Downloads & RERA & Walkthrough Title (stored in narrative_sections JSONB — no extra DB columns needed)
+  const dl = project ? getDownloadsConfig(project.narrative_sections || []) : { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false, walkthrough_title: "Project Walkthrough & 3D Tour" };
   const [brochureFile, setBrochureFile] = useState<File | null>(null);
   const [brochureUrl, setBrochureUrl] = useState(dl.brochure_url);
   const [reraNumber, setReraNumber] = useState(dl.rera_number);
   const [reraFile, setReraFile] = useState<File | null>(null);
   const [reraUrl, setReraUrl] = useState(dl.rera_url);
+  const [walkthroughTitle, setWalkthroughTitle] = useState(dl.walkthrough_title || "Project Walkthrough & 3D Tour");
   const [isDraggingBrochure, setIsDraggingBrochure] = useState(false);
   const [isDraggingRera, setIsDraggingRera] = useState(false);
 
@@ -139,9 +147,51 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
     setLoading(false);
   }, [project?.id]);
 
+  // Auto-load blog data (gallery images, long_description, etc.) on mount
   useEffect(() => {
-    if (project?.id) loadBlogData();
-  }, [project?.id, loadBlogData]);
+    loadBlogData();
+  }, [loadBlogData]);
+
+  const descRef = useRef<HTMLTextAreaElement | null>(null);
+  const storyRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const applyFormat = (
+    target: 'desc' | 'story',
+    openTag: string,
+    closeTag: string,
+    placeholder: string = "Text"
+  ) => {
+    const ref = target === 'desc' ? descRef.current : storyRef.current;
+    const val = target === 'desc' ? description : story;
+    const setVal = target === 'desc' ? setDescription : setStory;
+
+    if (!ref) {
+      setVal(val + `${openTag}${placeholder}${closeTag}`);
+      return;
+    }
+
+    const start = ref.selectionStart;
+    const end = ref.selectionEnd;
+    const sel = val.substring(start, end);
+
+    if (sel.length > 0) {
+      const replacement = `${openTag}${sel}${closeTag}`;
+      const newText = val.substring(0, start) + replacement + val.substring(end);
+      setVal(newText);
+      setTimeout(() => {
+        ref.focus();
+        ref.setSelectionRange(start, start + replacement.length);
+      }, 0);
+    } else {
+      const replacement = `${openTag}${placeholder}${closeTag}`;
+      const newText = val.substring(0, start) + replacement + val.substring(start);
+      setVal(newText);
+      setTimeout(() => {
+        ref.focus();
+        ref.setSelectionRange(start + openTag.length, start + openTag.length + placeholder.length);
+      }, 0);
+    }
+  };
 
   async function handleSaveAll() {
     setSaving("general");
@@ -166,7 +216,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
       }
 
       const initSections = setDownloadsConfig([], {
-        brochure_url: finalBrochureUrl, rera_url: finalReraUrl, rera_number: reraNumber,
+        brochure_url: finalBrochureUrl, rera_url: finalReraUrl, rera_number: reraNumber, walkthrough_title: walkthroughTitle,
       });
       const { error } = await createProject(
         { 
@@ -220,7 +270,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
       }
 
       const updatedSections = setDownloadsConfig(project!.narrative_sections || [], {
-        brochure_url: finalBrochureUrl, rera_url: finalReraUrl, rera_number: reraNumber,
+        brochure_url: finalBrochureUrl, rera_url: finalReraUrl, rera_number: reraNumber, walkthrough_title: walkthroughTitle
       });
       const { error } = await updateProject(project!.id, {
         title, description, long_description: story,
@@ -646,16 +696,17 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Short Description (Overview Summary)</label>
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-secondary/50 border border-border text-xs">
-                        <button type="button" onClick={() => setDescription(prev => prev + " <b>Bold</b>")} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-foreground" title="Bold">B</button>
-                        <button type="button" onClick={() => setDescription(prev => prev + " <i>Italic</i>")} className="px-1.5 py-0.5 rounded hover:bg-secondary italic text-foreground" title="Italic">I</button>
-                        <button type="button" onClick={() => setDescription(prev => prev + " <u>Underline</u>")} className="px-1.5 py-0.5 rounded hover:bg-secondary underline text-foreground" title="Underline">U</button>
+                        <button type="button" onClick={() => applyFormat('desc', '<b>', '</b>', 'Bold Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-foreground" title="Bold">B</button>
+                        <button type="button" onClick={() => applyFormat('desc', '<i>', '</i>', 'Italic Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary italic text-foreground" title="Italic">I</button>
+                        <button type="button" onClick={() => applyFormat('desc', '<u>', '</u>', 'Underlined Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary underline text-foreground" title="Underline">U</button>
                         <div className="w-px h-3 bg-border" />
-                        <button type="button" onClick={() => setDescription(prev => prev + ' <span style="font-size: 1.25em;">Large text</span>')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-[10px]" title="Font Size">A+</button>
-                        <button type="button" onClick={() => setDescription(prev => prev + ' <span style="color: #b8922a;">Gold text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#b8922a]" title="Gold Color" />
-                        <button type="button" onClick={() => setDescription(prev => prev + ' <span style="color: #38bdf8;">Cyan text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#38bdf8]" title="Cyan Color" />
+                        <button type="button" onClick={() => applyFormat('desc', '<span style="font-size: 1.25em;">', '</span>', 'Large Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-[10px]" title="Font Size">A+</button>
+                        <button type="button" onClick={() => applyFormat('desc', '<span style="color: #b8922a;">', '</span>', 'Gold Text')} className="w-3.5 h-3.5 rounded-full bg-[#b8922a]" title="Gold Color" />
+                        <button type="button" onClick={() => applyFormat('desc', '<span style="color: #38bdf8;">', '</span>', 'Cyan Text')} className="w-3.5 h-3.5 rounded-full bg-[#38bdf8]" title="Cyan Color" />
                       </div>
                     </div>
                     <textarea
+                      ref={descRef}
                       value={description}
                       onChange={e => setDescription(e.target.value)}
                       rows={3}
@@ -668,16 +719,17 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                     <div className="flex items-center justify-between">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Full Story Narrative (Detailed Description)</label>
                       <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-secondary/50 border border-border text-xs">
-                        <button type="button" onClick={() => setStory(prev => prev + " <b>Bold</b>")} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-foreground" title="Bold">B</button>
-                        <button type="button" onClick={() => setStory(prev => prev + " <i>Italic</i>")} className="px-1.5 py-0.5 rounded hover:bg-secondary italic text-foreground" title="Italic">I</button>
-                        <button type="button" onClick={() => setStory(prev => prev + " <u>Underline</u>")} className="px-1.5 py-0.5 rounded hover:bg-secondary underline text-foreground" title="Underline">U</button>
+                        <button type="button" onClick={() => applyFormat('story', '<b>', '</b>', 'Bold Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-foreground" title="Bold">B</button>
+                        <button type="button" onClick={() => applyFormat('story', '<i>', '</i>', 'Italic Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary italic text-foreground" title="Italic">I</button>
+                        <button type="button" onClick={() => applyFormat('story', '<u>', '</u>', 'Underlined Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary underline text-foreground" title="Underline">U</button>
                         <div className="w-px h-3 bg-border" />
-                        <button type="button" onClick={() => setStory(prev => prev + ' <span style="font-size: 1.25em;">Large text</span>')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-[10px]" title="Font Size">A+</button>
-                        <button type="button" onClick={() => setStory(prev => prev + ' <span style="color: #b8922a;">Gold text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#b8922a]" title="Gold Color" />
-                        <button type="button" onClick={() => setStory(prev => prev + ' <span style="color: #38bdf8;">Cyan text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#38bdf8]" title="Cyan Color" />
+                        <button type="button" onClick={() => applyFormat('story', '<span style="font-size: 1.25em;">', '</span>', 'Large Text')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-[10px]" title="Font Size">A+</button>
+                        <button type="button" onClick={() => applyFormat('story', '<span style="color: #b8922a;">', '</span>', 'Gold Text')} className="w-3.5 h-3.5 rounded-full bg-[#b8922a]" title="Gold Color" />
+                        <button type="button" onClick={() => applyFormat('story', '<span style="color: #38bdf8;">', '</span>', 'Cyan Text')} className="w-3.5 h-3.5 rounded-full bg-[#38bdf8]" title="Cyan Color" />
                       </div>
                     </div>
                     <textarea
+                      ref={storyRef}
                       value={story}
                       onChange={e => setStory(e.target.value)}
                       rows={7}
@@ -780,70 +832,122 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                   </div>
                 )}
 
-                {/* ── YouTube URL ───────────────────────────────── */}
-                <div className="p-5 rounded-2xl border border-border bg-secondary/10 flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-red-500/80 flex-shrink-0">
-                    <Video size={18} />
+                {/* ── Dedicated Walkthrough & Virtual Tour Section ── */}
+                <div className="p-6 rounded-3xl border border-border bg-secondary/15 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-2xl bg-brand-accent/10 border border-brand-accent/20 flex items-center justify-center text-brand-accent">
+                      <Video size={18} />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold tracking-tight">Project Walkthrough & 3D Virtual Tour</h4>
+                      <p className="text-[11px] text-muted-foreground">Customize the section title and set the dedicated Walkthrough video URL for the project page</p>
+                    </div>
                   </div>
-                  <div className="flex-1 flex gap-2">
-                    <input
-                      value={youtubeUrl}
-                      onChange={e => setYoutubeUrl(e.target.value)}
-                      placeholder="Paste YouTube URL here..."
-                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border text-xs outline-none focus:border-brand-accent/50"
-                    />
-                    <button
-                      onClick={handleAddYoutube}
-                      disabled={!!saving || !youtubeUrl}
-                      className="btn-vercel h-10 px-4 text-[10px] whitespace-nowrap flex items-center gap-1"
-                    >
-                      {saving === 'youtube' ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
-                      Add Link
-                    </button>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Section Title Name</label>
+                      <input
+                        value={walkthroughTitle}
+                        onChange={e => setWalkthroughTitle(e.target.value)}
+                        placeholder="e.g. Project Walkthrough & 3D Tour"
+                        className="w-full px-4 py-2.5 rounded-2xl bg-background border border-border text-xs outline-none focus:border-brand-accent/50 transition-all font-medium"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Walkthrough Video / YouTube URL</label>
+                      <input
+                        value={streamUrl}
+                        onChange={e => setStreamUrl(e.target.value)}
+                        placeholder="Paste Walkthrough YouTube or MP4 URL..."
+                        className="w-full px-4 py-2.5 rounded-2xl bg-background border border-border text-xs outline-none focus:border-brand-accent/50 transition-all font-mono"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 md:grid-cols-4 gap-4 pt-4 border-t border-border">
-                  {(blogData?.gallery_updates || []).map((u: any, i: number) => (
-                    <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-border group bg-secondary/30 flex items-center justify-center">
-                        {u.media_type === "image" ? (
-                          <div className="relative w-full h-full">
-                            <Image src={u.media_url} alt="Gallery item" fill className="object-cover" />
+                {/* ── Gallery Items Grid ───────────────────────────── */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground ml-1">Gallery Media Files</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {(blogData?.gallery_updates || []).map((u: any, i: number) => {
+                      const ytId = u.media_type === "youtube" ? (u.media_url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/) || [])[1] : null;
+                      const thumb = u.thumbnail_url || (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
+
+                      return (
+                        <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-border group bg-secondary/30 flex items-center justify-center">
+                          {u.media_type === "image" ? (
+                            <div className="relative w-full h-full">
+                              <Image src={u.media_url} alt="Gallery item" fill className="object-cover" />
+                            </div>
+                          ) : (
+                            <div className="relative w-full h-full bg-black/40">
+                              {thumb ? (
+                                <Image src={thumb} alt="Video thumbnail" fill className="object-cover opacity-75" />
+                              ) : u.media_type === "video" ? (
+                                <video src={u.media_url} className="w-full h-full object-cover opacity-75" muted playsInline />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-black/60">
+                                  <Video size={28} className="text-brand-accent opacity-80" />
+                                </div>
+                              )}
+
+                              {/* Play badge */}
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-10 h-10 rounded-full bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center text-white shadow-lg">
+                                  <Play size={16} className="text-brand-accent fill-brand-accent ml-0.5" />
+                                </div>
+                              </div>
+
+                              {/* Custom Thumbnail Upload Trigger */}
+                              <div
+                                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/70 backdrop-blur-sm z-10 cursor-pointer"
+                                onClick={() => document.getElementById(`thumb-upload-${i}`)?.click()}
+                              >
+                                <div className="flex flex-col items-center justify-center text-white/90 hover:text-white transition-colors">
+                                  <ImageIcon size={18} className="mb-1 text-brand-accent" />
+                                  <span className="text-[9px] font-bold uppercase tracking-widest">{thumb ? "Replace Thumb" : "Set Custom Thumb"}</span>
+                                </div>
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                id={`thumb-upload-${i}`}
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setSaving("uploading");
+                                  const { error } = await setSiteUpdateThumbnail(project!.id, i, file, blogData?.gallery_updates || []);
+                                  setSaving(null);
+                                  if (!error) { haptic.confirm(); loadBlogData(); } else alert(error);
+                                }}
+                              />
+                            </div>
+                          )}
+
+                          {/* Type badge */}
+                          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-sm text-[8px] font-bold text-white uppercase tracking-widest pointer-events-none z-20 border border-white/10">
+                            {u.media_type}
                           </div>
-                        ) : (
-                         <>
-                           {u.thumbnail_url ? (
-                             <div className="relative w-full h-full">
-                               <Image src={u.thumbnail_url} alt="Video thumbnail" fill className="object-cover opacity-60" />
-                             </div>
-                           ) : (
-                             <Video size={24} className="text-muted-foreground/30" />
-                           )}
-                           
-                           {/* Custom Thumbnail Upload Trigger */}
-                           <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 backdrop-blur-sm z-10 cursor-pointer" onClick={() => document.getElementById(`thumb-upload-${i}`)?.click()}>
-                             <div className="flex flex-col items-center justify-center text-white/80 hover:text-white transition-colors">
-                               <ImageIcon size={16} className="mb-1" />
-                               <span className="text-[8px] font-bold uppercase tracking-widest">{u.thumbnail_url ? "Replace Thumb" : "Set Thumb"}</span>
-                             </div>
-                           </div>
-                           <input type="file" accept="image/*" className="hidden" id={`thumb-upload-${i}`} onChange={async (e) => {
-                             const file = e.target.files?.[0];
-                             if(!file) return;
-                             setSaving("uploading");
-                             const { error } = await setSiteUpdateThumbnail(project!.id, i, file, blogData?.gallery_updates || []);
-                             setSaving(null);
-                             if(!error) { haptic.confirm(); loadBlogData(); } else alert(error);
-                           }} />
-                           
-                           <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-black/60 text-[8px] font-bold text-white uppercase tracking-widest pointer-events-none z-20">
-                             {u.media_type}
-                           </div>
-                         </>
-                       )}
-                       <button onClick={async (e) => { e.stopPropagation(); haptic.error(); await deleteSiteUpdate(project!.id, u.media_url, blogData?.gallery_updates || []); loadBlogData(); }} className="absolute top-2 right-2 p-2 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-500"><Trash2 size={12} /></button>
-                    </div>
-                  ))}
+
+                          {/* Delete item button */}
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              haptic.error();
+                              await deleteSiteUpdate(project!.id, u.media_url, blogData?.gallery_updates || []);
+                              loadBlogData();
+                            }}
+                            className="absolute top-2 right-2 p-2 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-20 hover:bg-red-500 hover:scale-110"
+                            title="Remove item"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </motion.div>
             )}

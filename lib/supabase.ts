@@ -53,9 +53,9 @@ export interface Project {
   created_at?: string;
 }
 
-export function getDownloadsConfig(sections: BlogSection[]): { brochure_url: string; rera_url: string; rera_number: string; show_brochure: boolean; show_rera: boolean } {
+export function getDownloadsConfig(sections: BlogSection[]): { brochure_url: string; rera_url: string; rera_number: string; show_brochure: boolean; show_rera: boolean; walkthrough_title: string } {
   const entry = sections.find(s => s.title === "__downloads");
-  if (!entry) return { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false };
+  if (!entry) return { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false, walkthrough_title: "Project Walkthrough & 3D Tour" };
   try {
     const parsed = JSON.parse(entry.body || "{}");
     return {
@@ -64,12 +64,13 @@ export function getDownloadsConfig(sections: BlogSection[]): { brochure_url: str
       rera_number: parsed.rera_number || "",
       show_brochure: !!parsed.brochure_url,
       show_rera: !!(parsed.rera_url || parsed.rera_number),
+      walkthrough_title: parsed.walkthrough_title || "Project Walkthrough & 3D Tour",
     };
   }
-  catch { return { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false }; }
+  catch { return { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false, walkthrough_title: "Project Walkthrough & 3D Tour" }; }
 }
 
-export function setDownloadsConfig(sections: BlogSection[], cfg: { brochure_url: string; rera_url: string; rera_number: string; show_brochure?: boolean; show_rera?: boolean }): BlogSection[] {
+export function setDownloadsConfig(sections: BlogSection[], cfg: { brochure_url: string; rera_url: string; rera_number: string; show_brochure?: boolean; show_rera?: boolean; walkthrough_title?: string }): BlogSection[] {
   const filtered = sections.filter(s => s.title !== "__downloads");
   return [{ title: "__downloads", body: JSON.stringify(cfg) }, ...filtered];
 }
