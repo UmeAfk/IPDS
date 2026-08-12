@@ -16,6 +16,9 @@ build/
 # misc
 .DS_Store
 *.pem
+*.log
+.idea/
+.vscode/
 
 # debug
 npm-debug.log*
@@ -23,7 +26,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
+.env.production
 
 # vercel
 .vercel
@@ -31,3 +36,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scratch & temporary agent logs
+scratch/
+.system_generated/

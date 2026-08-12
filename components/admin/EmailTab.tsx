@@ -60,7 +60,7 @@ The ArchViz Studio Team`);
       initial={{ opacity: 0, y: 10 }} 
       animate={{ opacity: 1, y: 0 }} 
       transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-      className="max-w-4xl space-y-8 pb-20"
+      className="w-full space-y-8 pb-20"
     >
       {/* Header Info */}
       <div className="bevel-card p-6 bg-secondary/30 border-brand-accent/20">
@@ -77,9 +77,9 @@ The ArchViz Studio Team`);
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
         {/* Configuration */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           <section className="space-y-4">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recipient Target</label>
             <div className="flex gap-2">

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, Save, Loader2, Image as ImageIcon, Plus, Trash2, 
-  Activity, Upload, Video, Settings, BookOpen, Type,
+  Activity, Upload, Video, Settings, BookOpen, Type, FileText, Paperclip, Check, ExternalLink, Download
 } from "lucide-react";
 import { haptic } from "ios-haptics";
 import Image from "next/image";
@@ -111,16 +111,19 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
   }, []);
   
   
-  // Downloads
-  const dl = project ? getDownloadsConfig(project.narrative_sections || []) : { brochure_url: "", rera_url: "", show_brochure: false, show_rera: false };
+  // Downloads & RERA (stored in narrative_sections JSONB — no extra DB columns needed)
+  const dl = project ? getDownloadsConfig(project.narrative_sections || []) : { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false };
+  const [brochureFile, setBrochureFile] = useState<File | null>(null);
   const [brochureUrl, setBrochureUrl] = useState(dl.brochure_url);
+  const [reraNumber, setReraNumber] = useState(dl.rera_number);
+  const [reraFile, setReraFile] = useState<File | null>(null);
   const [reraUrl, setReraUrl] = useState(dl.rera_url);
-  const [showBrochure, setShowBrochure] = useState(dl.show_brochure);
-  const [showRera, setShowRera] = useState(dl.show_rera);
+  const [isDraggingBrochure, setIsDraggingBrochure] = useState(false);
+  const [isDraggingRera, setIsDraggingRera] = useState(false);
 
   // Blog Data
   const [blogData, setBlogData] = useState<any>(null);
-  const [story, setStory] = useState("");
+  const [story, setStory] = useState(project?.long_description || "");
   const [hasLiveUpdates, setHasLiveUpdates] = useState(true);
   const [youtubeUrl, setYoutubeUrl] = useState("");
 
@@ -140,7 +143,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
     if (project?.id) loadBlogData();
   }, [project?.id, loadBlogData]);
 
-  async function handleSaveGeneral() {
+  async function handleSaveAll() {
     setSaving("general");
     
     if (isNew) {
@@ -149,10 +152,21 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
         setSaving(null);
         return;
       }
-      const { createProject } = await import("@/lib/supabase");
+      let finalBrochureUrl = brochureUrl;
+      let finalReraUrl = reraUrl;
+      const { createProject, uploadProjectDocument } = await import("@/lib/supabase");
+      
+      if (brochureFile) {
+        const b = await uploadProjectDocument(brochureFile, title, "brochure");
+        if (!b.error) finalBrochureUrl = b.url;
+      }
+      if (reraFile) {
+        const r = await uploadProjectDocument(reraFile, title, "rera");
+        if (!r.error) finalReraUrl = r.url;
+      }
+
       const initSections = setDownloadsConfig([], {
-        brochure_url: brochureUrl, rera_url: reraUrl,
-        show_brochure: showBrochure, show_rera: showRera,
+        brochure_url: finalBrochureUrl, rera_url: finalReraUrl, rera_number: reraNumber,
       });
       const { error } = await createProject(
         { 
@@ -160,7 +174,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
           featured: false, is_active: true, sort_order: 0, 
           access_type: accessType, access_password: accessPassword, 
           status: "published",
-          long_description: "",
+          long_description: story,
           narrative_sections: initSections,
           gallery_updates: [],
           category: category || null
@@ -179,8 +193,10 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
       let mainUrl = project!.image_url;
       let darkUrl = project!.image_url_dark;
       let lightUrl = project!.image_url_light;
+      let finalBrochureUrl = brochureUrl;
+      let finalReraUrl = reraUrl;
       
-      const { uploadProjectImage } = await import("@/lib/supabase");
+      const { uploadProjectImage, uploadProjectDocument, updateProjectBlogOverview } = await import("@/lib/supabase");
       
       if (mainImage) {
         const m = await uploadProjectImage(mainImage, title);
@@ -194,13 +210,21 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
         const l = await uploadProjectImage(lightImage, title, "-light");
         if (!l.error) lightUrl = l.url;
       }
+      if (brochureFile) {
+        const b = await uploadProjectDocument(brochureFile, title, "brochure");
+        if (!b.error) finalBrochureUrl = b.url;
+      }
+      if (reraFile) {
+        const r = await uploadProjectDocument(reraFile, title, "rera");
+        if (!r.error) finalReraUrl = r.url;
+      }
 
       const updatedSections = setDownloadsConfig(project!.narrative_sections || [], {
-        brochure_url: brochureUrl, rera_url: reraUrl,
-        show_brochure: showBrochure, show_rera: showRera,
+        brochure_url: finalBrochureUrl, rera_url: finalReraUrl, rera_number: reraNumber,
       });
       const { error } = await updateProject(project!.id, {
-        title, description, stream_url: streamUrl, location, year, type,
+        title, description, long_description: story,
+        stream_url: streamUrl, location, year, type,
         access_type: accessType, access_password: accessPassword,
         status: "published", narrative_sections: updatedSections,
         image_url: mainUrl,
@@ -208,6 +232,12 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
         image_url_light: lightUrl,
         category: category || null,
       });
+
+      // Also sync the blog overview
+      await updateProjectBlogOverview(project!.id, {
+        long_description: story, has_live_updates: hasLiveUpdates
+      });
+
       if (!error) {
         haptic.confirm();
         onUpdate();
@@ -232,19 +262,6 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
       onClose();
     } else {
       alert(error);
-    }
-  }
-
-  async function handleSaveOverview() {
-    if (isNew) return;
-    setSaving("overview");
-    const { error } = await updateProjectBlogOverview(project!.id, {
-      long_description: story, has_live_updates: hasLiveUpdates
-    });
-    setSaving(null);
-    if (!error) {
-      haptic.confirm();
-      alert("Project narrative saved!");
     }
   }
 
@@ -299,7 +316,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-[1600px] h-full max-h-[90vh] premium-card flex flex-col overflow-hidden"
+        className="relative w-full max-w-[1600px] h-full max-h-[90vh] bg-card border border-border/60 rounded-3xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-2xl"
       >
         {/* Header */}
         <div className="px-8 py-6 border-b border-border flex items-center justify-between">
@@ -307,31 +324,43 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
             <h2 className="text-2xl font-medium tracking-tighter">{isNew ? "Add New Project" : "Edit Project"}</h2>
             <p className="text-xs text-muted-foreground uppercase tracking-widest font-bold mt-1">{isNew ? "Initialize a new vision" : project?.title}</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-full hover:bg-secondary transition-colors">
+          <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-secondary flex items-center justify-center transition-all active:scale-95">
             <X size={20} />
           </button>
         </div>
 
         {/* Tabs & Top Actions */}
-        <div className="px-8 py-3 border-b border-border flex items-center justify-between gap-4 bg-secondary/10">
-          <div className="flex gap-3 overflow-x-auto no-scrollbar">
+        <div className="px-8 py-3.5 border-b border-border flex items-center justify-between gap-4 bg-secondary/10">
+          <div className="p-1.5 rounded-full bg-secondary/40 border border-border/60 flex items-center gap-1 overflow-x-auto no-scrollbar">
             {[
               { id: "general", label: "General", icon: Settings },
               { id: "content", label: "Story", icon: Type },
               { id: "updates", label: "Gallery", icon: Activity, disabled: isNew },
-            ].map((t) => (
-              <button
-                key={t.id}
-                disabled={t.disabled}
-                onClick={() => { haptic(); setActiveTab(t.id as any); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                  activeTab === t.id ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:bg-secondary"
-                } ${t.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
-              >
-                <t.icon size={14} />
-                {t.label}
-              </button>
-            ))}
+            ].map((t) => {
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  disabled={t.disabled}
+                  onClick={() => { haptic(); setActiveTab(t.id as any); }}
+                  className={`relative flex items-center gap-2 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-widest transition-colors ${
+                    isActive ? "text-background" : "text-muted-foreground hover:text-foreground"
+                  } ${t.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTabPill"
+                      className="absolute inset-0 bg-foreground rounded-full shadow-md z-0"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    <t.icon size={14} />
+                    {t.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           <div className="flex items-center gap-3">
@@ -339,36 +368,27 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
               <button
                 onClick={handleDelete}
                 disabled={!!saving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-red-400 hover:bg-red-400/10 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-40"
-                title="Discard Project"
+                className="h-10 px-4 rounded-full text-red-400 hover:bg-red-400/10 border border-transparent hover:border-red-400/20 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-40 flex items-center gap-1.5 active:scale-[0.98]"
+                title="Delete Project"
               >
                 {saving === 'deleting' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                <span className="hidden sm:inline">Discard</span>
+                <span className="hidden sm:inline">Delete</span>
               </button>
             )}
 
-            {activeTab === 'updates' ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-secondary/30 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                Auto-saved
-              </div>
-            ) : (
-              <button
-                onClick={activeTab === 'general' ? handleSaveGeneral : handleSaveOverview}
-                disabled={!!saving}
-                className="btn-vercel h-9 px-6 text-xs font-bold uppercase tracking-widest flex items-center gap-2 justify-center disabled:opacity-50"
-              >
-                {saving === 'general' || saving === 'overview' ? (
-                  <><Loader2 size={13} className="animate-spin" /> Saving...</>
-                ) : saving === 'success' ? (
-                  <>✓ Saved!</>
-                ) : activeTab === 'general' ? (
-                  <><Save size={13} /> {isNew ? 'Create' : 'Save Changes'}</>
-                ) : (
-                  <><Save size={13} /> Save Story</>
-                )}
-              </button>
-            )}
+            <button
+              onClick={handleSaveAll}
+              disabled={!!saving}
+              className="btn-vercel h-10 px-7 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 justify-center shadow-lg active:scale-[0.98] transition-all"
+            >
+              {saving === 'general' || saving === 'overview' ? (
+                <><Loader2 size={13} className="animate-spin" /> Saving...</>
+              ) : saving === 'success' ? (
+                <>✓ Saved!</>
+              ) : (
+                <><Save size={13} /> {isNew ? 'Create Project' : 'Save Project'}</>
+              )}
+            </button>
           </div>
         </div>
 
@@ -392,42 +412,124 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Short Description</label>
-                  <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-sm outline-none focus:border-brand-accent/40 transition-all resize-none" />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Stream URL (Pixel Streaming)</label>
+                    <input value={streamUrl} onChange={e => setStreamUrl(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-sm outline-none focus:border-brand-accent/40 transition-all" placeholder="https://..." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Year</label>
+                    <input value={year} onChange={e => setYear(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none" />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Stream URL (Pixel Streaming)</label>
-                    <input value={streamUrl} onChange={e => setStreamUrl(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-sm outline-none focus:border-brand-accent/40 transition-all" />
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Type</label>
+                    <CustomSelect value={type} onChange={setType} options={TYPE_OPTIONS} />
                   </div>
-                  <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Year</label>
-                      <input value={year} onChange={e => setYear(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Type</label>
-                      <CustomSelect value={type} onChange={setType} options={TYPE_OPTIONS} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Category</label>
-                      <CustomSelect value={category} onChange={val => setCategory(val as any)} options={CATEGORY_OPTIONS} placeholder="Select Category" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Access</label>
-                      <CustomSelect value={accessType} onChange={setAccessType} options={ACCESS_OPTIONS} />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Password</label>
-                      <input value={accessPassword} onChange={e => setAccessPassword(e.target.value)} disabled={accessType !== "password"} placeholder="••••••" className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none disabled:opacity-30" />
-                    </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Category</label>
+                    <CustomSelect value={category} onChange={val => setCategory(val as any)} options={CATEGORY_OPTIONS} placeholder="Select Category" />
                   </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Access</label>
+                    <CustomSelect value={accessType} onChange={setAccessType} options={ACCESS_OPTIONS} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Password</label>
+                    <input value={accessPassword} onChange={e => setAccessPassword(e.target.value)} disabled={accessType !== "password"} placeholder="••••••" className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none disabled:opacity-30" />
+                  </div>
+                </div>
+
+                {/* ── Brochure & RERA Section ────────────────── */}
+                <div className="space-y-4 pt-6 border-t border-border/40">
+                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Brochure & RERA Compliance</h4>
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                      {/* Brochure File Upload */}
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Project Brochure (PDF or Image)</label>
+                         <div
+                           className={`relative aspect-[3/1] bg-secondary/20 border-2 border-dashed rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                             isDraggingBrochure ? 'border-brand-accent bg-brand-accent/5' : 'border-border hover:border-brand-accent/40'
+                           }`}
+                           onDragOver={e => { e.preventDefault(); setIsDraggingBrochure(true); }}
+                           onDragLeave={() => setIsDraggingBrochure(false)}
+                           onDrop={e => { e.preventDefault(); setIsDraggingBrochure(false); const f = e.dataTransfer.files[0]; if (f) setBrochureFile(f); }}
+                           onClick={() => document.getElementById('brochure-file-input')?.click()}
+                         >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                               <div className="w-9 h-9 rounded-xl bg-brand-accent/10 text-brand-accent flex items-center justify-center flex-shrink-0">
+                                  <FileText size={18} />
+                               </div>
+                               <div className="truncate">
+                                  <p className="text-xs font-semibold truncate text-foreground">
+                                     {brochureFile ? brochureFile.name : brochureUrl ? "Brochure Attached" : "Upload Brochure"}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                     {brochureFile ? `${(brochureFile.size / 1024 / 1024).toFixed(1)} MB` : brochureUrl ? "Click to replace" : "PDF or Image"}
+                                  </p>
+                               </div>
+                            </div>
+                            {brochureUrl && !brochureFile && (
+                               <a href={brochureUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all flex-shrink-0" title="View Brochure">
+                                  <ExternalLink size={14} />
+                               </a>
+                            )}
+                            <input type="file" accept="application/pdf,image/*" id="brochure-file-input" className="hidden" onChange={e => setBrochureFile(e.target.files?.[0] || null)} />
+                         </div>
+                      </div>
+
+                      {/* RERA Number */}
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">RERA Registration Number</label>
+                         <input
+                           value={reraNumber}
+                           onChange={e => setReraNumber(e.target.value)}
+                           placeholder="e.g. P52100012345"
+                           className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none focus:border-brand-accent/40 font-mono tracking-wider"
+                         />
+                      </div>
+
+                      {/* RERA Certificate / QR */}
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">RERA Document / QR Code</label>
+                         <div
+                           className={`relative aspect-[3/1] bg-secondary/20 border-2 border-dashed rounded-2xl p-4 flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                             isDraggingRera ? 'border-brand-accent bg-brand-accent/5' : 'border-border hover:border-brand-accent/40'
+                           }`}
+                           onDragOver={e => { e.preventDefault(); setIsDraggingRera(true); }}
+                           onDragLeave={() => setIsDraggingRera(false)}
+                           onDrop={e => { e.preventDefault(); setIsDraggingRera(false); const f = e.dataTransfer.files[0]; if (f) setReraFile(f); }}
+                           onClick={() => document.getElementById('rera-file-input')?.click()}
+                         >
+                            <div className="flex items-center gap-3 overflow-hidden">
+                               <div className="w-9 h-9 rounded-xl bg-brand-accent/10 text-brand-accent flex items-center justify-center flex-shrink-0">
+                                  <Paperclip size={18} />
+                               </div>
+                               <div className="truncate">
+                                  <p className="text-xs font-semibold truncate text-foreground">
+                                     {reraFile ? reraFile.name : reraUrl ? "RERA Doc Attached" : "Upload RERA QR/Doc"}
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground truncate">
+                                     {reraFile ? `${(reraFile.size / 1024 / 1024).toFixed(1)} MB` : reraUrl ? "Click to replace" : "PDF or Image"}
+                                  </p>
+                               </div>
+                            </div>
+                            {reraUrl && !reraFile && (
+                               <a href={reraUrl} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-all flex-shrink-0" title="View Document">
+                                  <ExternalLink size={14} />
+                               </a>
+                            )}
+                            <input type="file" accept="application/pdf,image/*" id="rera-file-input" className="hidden" onChange={e => setReraFile(e.target.files?.[0] || null)} />
+                         </div>
+                      </div>
+
+                   </div>
                 </div>
 
                 <div className="space-y-6">
-                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-4 border-t border-border/30">Thumbnails — click or drag an image onto each slot</h4>
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                       {/* ── Main Thumbnail ─────────────────────────── */}
@@ -534,9 +636,55 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                 <section className="space-y-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-brand-accent"><BookOpen size={18} /></div>
-                    <h3 className="text-lg font-medium tracking-tight">Project Story Overview</h3>
+                    <div>
+                      <h3 className="text-lg font-medium tracking-tight">Project Narrative & Story</h3>
+                      <p className="text-xs text-muted-foreground">Craft the short overview and long detailed story for this project</p>
+                    </div>
                   </div>
-                  <textarea value={story} onChange={e => setStory(e.target.value)} rows={6} className="w-full px-5 py-3 rounded-2xl bg-secondary/50 border border-border text-sm outline-none focus:ring-1 focus:ring-brand-accent/20 resize-none font-light leading-relaxed" placeholder="Write the narrative for this project..." />
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Short Description (Overview Summary)</label>
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-secondary/50 border border-border text-xs">
+                        <button type="button" onClick={() => setDescription(prev => prev + " <b>Bold</b>")} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-foreground" title="Bold">B</button>
+                        <button type="button" onClick={() => setDescription(prev => prev + " <i>Italic</i>")} className="px-1.5 py-0.5 rounded hover:bg-secondary italic text-foreground" title="Italic">I</button>
+                        <button type="button" onClick={() => setDescription(prev => prev + " <u>Underline</u>")} className="px-1.5 py-0.5 rounded hover:bg-secondary underline text-foreground" title="Underline">U</button>
+                        <div className="w-px h-3 bg-border" />
+                        <button type="button" onClick={() => setDescription(prev => prev + ' <span style="font-size: 1.25em;">Large text</span>')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-[10px]" title="Font Size">A+</button>
+                        <button type="button" onClick={() => setDescription(prev => prev + ' <span style="color: #b8922a;">Gold text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#b8922a]" title="Gold Color" />
+                        <button type="button" onClick={() => setDescription(prev => prev + ' <span style="color: #38bdf8;">Cyan text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#38bdf8]" title="Cyan Color" />
+                      </div>
+                    </div>
+                    <textarea
+                      value={description}
+                      onChange={e => setDescription(e.target.value)}
+                      rows={3}
+                      className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-sm outline-none focus:border-brand-accent/40 transition-all resize-none font-light leading-relaxed"
+                      placeholder="Write a brief 2-3 sentence overview..."
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Full Story Narrative (Detailed Description)</label>
+                      <div className="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-secondary/50 border border-border text-xs">
+                        <button type="button" onClick={() => setStory(prev => prev + " <b>Bold</b>")} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-foreground" title="Bold">B</button>
+                        <button type="button" onClick={() => setStory(prev => prev + " <i>Italic</i>")} className="px-1.5 py-0.5 rounded hover:bg-secondary italic text-foreground" title="Italic">I</button>
+                        <button type="button" onClick={() => setStory(prev => prev + " <u>Underline</u>")} className="px-1.5 py-0.5 rounded hover:bg-secondary underline text-foreground" title="Underline">U</button>
+                        <div className="w-px h-3 bg-border" />
+                        <button type="button" onClick={() => setStory(prev => prev + ' <span style="font-size: 1.25em;">Large text</span>')} className="px-1.5 py-0.5 rounded hover:bg-secondary font-bold text-[10px]" title="Font Size">A+</button>
+                        <button type="button" onClick={() => setStory(prev => prev + ' <span style="color: #b8922a;">Gold text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#b8922a]" title="Gold Color" />
+                        <button type="button" onClick={() => setStory(prev => prev + ' <span style="color: #38bdf8;">Cyan text</span>')} className="w-3.5 h-3.5 rounded-full bg-[#38bdf8]" title="Cyan Color" />
+                      </div>
+                    </div>
+                    <textarea
+                      value={story}
+                      onChange={e => setStory(e.target.value)}
+                      rows={7}
+                      className="w-full px-5 py-3 rounded-2xl bg-secondary/50 border border-border text-sm outline-none focus:ring-1 focus:ring-brand-accent/20 resize-none font-light leading-relaxed"
+                      placeholder="Write the full narrative for this project..."
+                    />
+                  </div>
                 </section>
               </motion.div>
             )}

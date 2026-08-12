@@ -113,23 +113,24 @@ export default function ProjectPage() {
   return (
     <>
       <main>
-        {/* HERO BANNER — Crisp 16:9 / 21:9 ultra-wide architectural showcase */}
-        <div className="relative w-full aspect-[16/9] md:aspect-[21/9] min-h-[380px] max-h-[75vh] overflow-hidden bg-neutral-950 shadow-2xl">
+        {/* HERO BANNER — Full uncropped image with transparent bottom fade */}
+        <div className="relative w-full overflow-hidden bg-background">
           {heroImage ? (
-            <Image
-              src={heroImage}
-              alt={project.title}
-              fill
-              className="object-cover object-center"
-              priority
-              sizes="100vw"
-            />
+            <div className="relative w-full aspect-[16/9] md:aspect-[2/1] max-h-[80vh]">
+              <Image
+                src={heroImage}
+                alt={project.title}
+                fill
+                className="object-cover object-center"
+                priority
+                sizes="100vw"
+              />
+              {/* Smooth transparent fade at bottom — blends image into page */}
+              <div className="absolute bottom-0 left-0 right-0 h-[35%] bg-gradient-to-t from-background via-background/50 to-transparent pointer-events-none" />
+            </div>
           ) : (
-            <div className="w-full h-full bg-neutral-900" />
+            <div className="w-full aspect-[21/9] bg-neutral-900" />
           )}
-
-          {/* Cinematic dark vignette — clean top & bottom gradient without white fog lines */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/40 pointer-events-none z-10" />
 
           {/* Floating nav row */}
           <div className="absolute top-0 inset-x-0 z-20 p-4 md:p-6 flex items-center justify-between">
@@ -144,8 +145,8 @@ export default function ProjectPage() {
           </div>
         </div>
 
-        <section className="bg-background relative z-10 border-t border-border/40">
-          <div className="max-w-7xl mx-auto px-6 pt-6 md:pt-10 pb-16 md:pb-24">
+        <section className="bg-background relative z-10">
+          <div className="max-w-7xl mx-auto px-6 pt-12 md:pt-20 pb-16 md:pb-24">
             <div className="grid md:grid-cols-2 gap-12 md:gap-20">
               <div>
                 <p className="eyebrow mb-3">{project.type} · {project.location}</p>
@@ -153,46 +154,66 @@ export default function ProjectPage() {
                 <h1 className="heading-hero text-foreground mb-6">
                   {project.title}
                 </h1>
-                {project.year && (
-                  <p className="font-mono text-xs text-muted-foreground mb-6 tracking-wide uppercase">
-                    RERA: {project.title.slice(0, 3).toUpperCase()}/{project.year}/{project.location.slice(0, 4).toUpperCase()}
-                  </p>
+                {/* Short Description (Overview Lead) */}
+                {project.description && (
+                  <div 
+                    className="text-base md:text-lg font-medium text-foreground/90 leading-relaxed mb-6 space-y-2 font-sans"
+                    dangerouslySetInnerHTML={{ __html: project.description }}
+                  />
                 )}
-                <p className="body-text mb-8">
-                  {project.long_description || project.description}
-                </p>
+
+                {/* Long Description (Full Story Narrative) */}
+                {project.long_description && project.long_description !== project.description && (
+                  <div 
+                    className="body-text leading-relaxed mb-8 text-muted-foreground whitespace-pre-line font-sans"
+                    dangerouslySetInnerHTML={{ __html: project.long_description }}
+                  />
+                )}
 
                 {(() => {
                   const dl = getDownloadsConfig(project.narrative_sections || []);
+                  const finalBrochure = dl.brochure_url;
+                  const finalReraUrl = dl.rera_url;
+                  const reraNum = dl.rera_number;
+
+                  if (!finalBrochure && !finalReraUrl && !reraNum) return null;
+
                   return (
-                    <div className="flex flex-wrap gap-3">
-                      {dl.show_brochure && dl.brochure_url && (
-                        <a
-                          href={dl.brochure_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-all text-xs font-bold uppercase tracking-widest"
-                        >
-                          <Download size={14} /> Brochure
-                        </a>
+                    <div className="flex flex-col gap-3 mt-6">
+                      {reraNum && (
+                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-secondary/40 border border-border text-xs font-mono tracking-wider text-muted-foreground w-fit">
+                          <span className="font-bold text-foreground">RERA:</span> {reraNum}
+                        </div>
                       )}
-                      {dl.show_rera && dl.rera_url && (
-                        <a
-                          href={dl.rera_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-all text-xs font-bold uppercase tracking-widest"
-                        >
-                          <FileText size={14} /> RERA
-                        </a>
-                      )}
+                      <div className="flex flex-wrap gap-3">
+                        {finalBrochure && (
+                          <a
+                            href={finalBrochure}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-all text-xs font-bold uppercase tracking-widest"
+                          >
+                            <Download size={14} /> Download Brochure
+                          </a>
+                        )}
+                        {finalReraUrl && (
+                          <a
+                            href={finalReraUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-secondary border border-border text-foreground hover:bg-secondary/80 transition-all text-xs font-bold uppercase tracking-widest"
+                          >
+                            <FileText size={14} /> RERA Document / QR
+                          </a>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
               </div>
 
               {/* IMAGE GALLERY */}
-              <div className="rounded-2xl border border-border shadow-lg overflow-hidden bg-card">
+              <div className="rounded-2xl border border-border shadow-lg overflow-hidden bg-card self-start">
                 {/* Featured Viewer */}
                 <div
                   className="group relative aspect-[4/3] overflow-hidden cursor-zoom-in bg-muted"
@@ -264,18 +285,17 @@ export default function ProjectPage() {
 
                 {/* Thumbnail Filmstrip — compact horizontal previews at bottom */}
                 {galleryItems.length > 0 && (
-                  <div className="px-3 pt-3 pb-4 md:px-4 md:pt-4 md:pb-5 border-t border-border bg-background/60">
-                    <div className="flex gap-2 md:gap-2.5 overflow-x-auto no-scrollbar py-1">
+                  <div className="px-2.5 py-2.5 md:px-3 md:py-3 border-t border-border bg-background/60">
+                    <div className="flex gap-2 md:gap-2.5 overflow-x-auto no-scrollbar">
                       {galleryItems.map((item, idx) => (
                         <button
                           key={idx}
                           ref={idx === activeGalleryIndex ? activeThumbRef : null}
                           onClick={() => setActiveGalleryIndex(idx)}
-                          className={`relative flex-shrink-0 h-[56px] md:h-[68px] w-[90px] md:w-[110px] rounded-lg overflow-hidden transition-all border-2 ${
-                            idx === activeGalleryIndex
-                              ? "border-accent shadow-md"
-                              : "border-transparent opacity-65 hover:opacity-100 hover:border-border"
-                          }`}
+                          className={`relative flex-shrink-0 h-[56px] md:h-[68px] w-[90px] md:w-[110px] rounded-lg overflow-hidden transition-all border-2 ${idx === activeGalleryIndex
+                            ? "border-accent shadow-md"
+                            : "border-transparent opacity-65 hover:opacity-100 hover:border-border"
+                            }`}
                         >
                           {item.type === "image" ? (
                             <Image
@@ -315,20 +335,6 @@ export default function ProjectPage() {
           </div>
         </section>
 
-        <section className="w-full py-8" style={{ background: "#a77d15ff" }}>
-          <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
-            <h2 className="text-xl font-semibold text-white text-center md:text-left">
-              Interested in this project?
-            </h2>
-            <a
-              href="/#contact"
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-[#b8922a] bg-white hover:bg-white/90 transition-all"
-            >
-              Get in Touch
-              <ArrowRight size={20} />
-            </a>
-          </div>
-        </section>
       </main>
 
       {/* LIGHTBOX */}

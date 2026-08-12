@@ -53,14 +53,23 @@ export interface Project {
   created_at?: string;
 }
 
-export function getDownloadsConfig(sections: BlogSection[]): { brochure_url: string; rera_url: string; show_brochure: boolean; show_rera: boolean } {
+export function getDownloadsConfig(sections: BlogSection[]): { brochure_url: string; rera_url: string; rera_number: string; show_brochure: boolean; show_rera: boolean } {
   const entry = sections.find(s => s.title === "__downloads");
-  if (!entry) return { brochure_url: "", rera_url: "", show_brochure: false, show_rera: false };
-  try { return JSON.parse(entry.body || "{}"); }
-  catch { return { brochure_url: "", rera_url: "", show_brochure: false, show_rera: false }; }
+  if (!entry) return { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false };
+  try {
+    const parsed = JSON.parse(entry.body || "{}");
+    return {
+      brochure_url: parsed.brochure_url || "",
+      rera_url: parsed.rera_url || "",
+      rera_number: parsed.rera_number || "",
+      show_brochure: !!parsed.brochure_url,
+      show_rera: !!(parsed.rera_url || parsed.rera_number),
+    };
+  }
+  catch { return { brochure_url: "", rera_url: "", rera_number: "", show_brochure: false, show_rera: false }; }
 }
 
-export function setDownloadsConfig(sections: BlogSection[], cfg: { brochure_url: string; rera_url: string; show_brochure: boolean; show_rera: boolean }): BlogSection[] {
+export function setDownloadsConfig(sections: BlogSection[], cfg: { brochure_url: string; rera_url: string; rera_number: string; show_brochure?: boolean; show_rera?: boolean }): BlogSection[] {
   const filtered = sections.filter(s => s.title !== "__downloads");
   return [{ title: "__downloads", body: JSON.stringify(cfg) }, ...filtered];
 }
@@ -145,6 +154,15 @@ export async function createProject(
 export async function uploadProjectImage(file: File, projectTitle: string, suffix = "") {
   const ext  = file.name.split(".").pop() ?? "jpg";
   const path = `${projectTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}${suffix}.${ext}`;
+  const { error } = await supabase.storage.from("project-images").upload(path, file, { upsert: false, contentType: file.type });
+  if (error) return { url: "", error: error.message };
+  const { data } = supabase.storage.from("project-images").getPublicUrl(path);
+  return { url: data.publicUrl, error: null };
+}
+
+export async function uploadProjectDocument(file: File, projectTitle: string, docType: "brochure" | "rera") {
+  const ext = file.name.split(".").pop() ?? "pdf";
+  const path = `docs/${projectTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${docType}-${Date.now()}.${ext}`;
   const { error } = await supabase.storage.from("project-images").upload(path, file, { upsert: false, contentType: file.type });
   if (error) return { url: "", error: error.message };
   const { data } = supabase.storage.from("project-images").getPublicUrl(path);

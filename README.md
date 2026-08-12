@@ -1,36 +1,50 @@
+<div align="center">
+
 # IPDS — Ideal Property Development Services
 
-![Next.js](https://img.shields.io/badge/Next.js-14.2-000000?logo=next.js)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss)
-![Supabase](https://img.shields.io/badge/Supabase-2-3FCF8E?logo=supabase)
-![Framer Motion](https://img.shields.io/badge/Framer_Motion-11-0055FF?logo=framer)
-![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?logo=vercel)
-![License](https://img.shields.io/badge/License-MIT-green)
+**Modern ArchViz Showcase & Real Estate Redevelopment Platform**
 
-A Next.js 14 showcase site for **IPDS**, a Pune-based self-redevelopment consultancy. Features a public portfolio with project galleries, live updates, and a full-featured admin panel with Supabase backend.
+[![Next.js](https://img.shields.io/badge/Next.js-14.2-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-Database-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
+[![Framer Motion](https://img.shields.io/badge/Framer_Motion-11.0-0055FF?style=for-the-badge&logo=framer&logoColor=white)](https://www.framer.com/motion/)
+[![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
+[![License](https://img.shields.io/badge/License-Proprietary_/_All_Rights_Reserved-red?style=for-the-badge)](./LICENSE)
+
+<br />
+
+A Next.js 14 showcase platform for **IPDS**, a Pune-based self-redevelopment consultancy. Features a public portfolio with project galleries, uncropped hero showcases, live updates, rich formatted story narratives, and a full-featured executive admin panel with Supabase backend.
+
+</div>
 
 ---
 
 ## Features
 
 ### Public Site
-- **Project Portfolio** — Ongoing and key projects with full details
-- **Project Pages** — Individual project pages with galleries, narrative sections, live video updates
+- **Project Portfolio** — Ongoing and key projects with full details and story narratives
+- **Project Pages** — Individual project pages with uncropped ultra-wide hero banner, transparent vignette fade, auto-scrolling gallery filmstrip, and short & long descriptions
+- **Brochure & RERA Downloads** — Conditional download buttons for project PDF/Image brochures and RERA registration codes/QR certificates
+- **Rich Text Formatting** — Live rendering of custom bold, italic, underline, font scaling, and color accents (Gold, Cyan, Emerald, Rose)
 - **Transformation Showcase** — Before/after stages with media
 - **Video Showcase** — YouTube embeds and uploaded videos
 - **Testimonials** — Client feedback carousel
-- **Dark Mode** — Theme-aware with `next-themes`
+- **Dark Mode** — Theme-aware with `next-themes` and header theme toggle
 - **Responsive Design** — Mobile-first Tailwind layout
 
 ### Admin Panel (`/admin`)
 - **Password-protected** — Secure cookie-based authentication
-- **Dashboard** — Visitor stats, enquiry management, CSV export
-- **Projects Management** — Create/edit/delete projects, drag-and-drop reorder with separate "Ongoing" and "Key" sections
+- **Dashboard Overview** — Executive stat cards with NumberTicker animations, interactive project traffic distribution, and recent lead log
+- **Unified 1-Click Save** — Top action bar save button syncing metadata, story text, brochure/RERA compliance, and gallery across all tabs
+- **Interactive Drag-and-Drop** — Batch file uploader for gallery images and project thumbnails with live status tracking
+- **Story & Narrative Workspace** — Consolidated Short Description and Long Description tab with rich formatting toolbars (B, I, U, font size, color presets)
+- **Brochure & RERA Compliance** — Dedicated drag-and-drop dropzones for project brochures and RERA registration documents
+- **Custom Glassmorphic Dropdowns** — Custom animated select components with Framer Motion and click-outside listeners
+- **Animated Pill Navigation** — Framer Motion sliding pill tab indicator (`layoutId="activeTabPill"`)
+- **Projects Management** — Create/edit/delete projects, drag-and-drop reordering for "Ongoing" and "Key" categories
 - **Content Management** — Hero image, settings, intro, stats, videos, testimonials, transformation stages, contact details
 - **Project Sharing** — Secure token-based share links for private projects
-- **Font Customization** — Display, body, and monospace font selection
-- **Live Updates** — Add video/image updates to projects
 
 ### Security
 - Cookie-based admin auth with SHA-256 password hash
@@ -225,13 +239,21 @@ This ensures both categories maintain independent ordering without collisions.
 ### Required Vercel Environment Variables
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-ADMIN_PASSWORD_HASH=sha256hex...
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+ADMIN_PASSWORD_HASH=
 ```
 
 ---
 
 ## License
 
-MIT
+**Proprietary & Confidential — All Rights Reserved**
+
+Copyright © 2024–2026 IPDS & Veil. No individual or organization is permitted to copy, reproduce, distribute, extract, or use any code, images, schemas, or media from this repository without prior written consent. See [`LICENSE`](./LICENSE) for full legal terms.
+
+---
+
+<p align="center">
+  Built with 💙 Made by <a href="https://venusapp.in/">Veil</a>
+</p>

@@ -226,18 +226,18 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
 
       {/* ── Sidebar ───────────────────────────────────── */}
       <aside className={`fixed inset-y-0 left-0 z-40 w-64 border-r border-border flex flex-col bg-background/95 backdrop-blur-xl transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="p-6 border-b border-border">
+        <div className="px-6 py-5 border-b border-border h-[81px] flex items-center">
           <div className="flex items-center gap-3">
             <div>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-pulse" />
-                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest opacity-60">Admin</span>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-brand-accent animate-pulse" />
+                <span className="text-xs text-foreground uppercase font-bold tracking-widest">Admin</span>
               </div>
             </div>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1.5">
           {[
             { id: "overview", label: "Overview", icon: Activity },
             { id: "projects", label: "Project", icon: Layers },
@@ -249,20 +249,21 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             <button
               key={id}
               onClick={() => { haptic(); setTab(id as any); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[13px] font-medium transition-all ${tab === id
-                  ? "bg-foreground text-background shadow-lg shadow-foreground/10"
-                  : "text-muted-foreground hover:bg-secondary/80"
-                }`}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-[13px] font-medium transition-all duration-200 ${
+                tab === id
+                  ? "bg-secondary/90 border border-border text-foreground font-semibold shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary/40 hover:text-foreground border border-transparent"
+              }`}
             >
-              <Icon size={16} className={tab === id ? "text-brand-accent" : ""} />
+              <Icon size={16} className={tab === id ? "text-brand-accent" : "text-muted-foreground/70"} />
               {label}
               {id === "visitors" && total > 0 && (
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-foreground/10 text-muted-foreground font-mono">
+                <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground font-mono">
                   {total}
                 </span>
               )}
               {id === "enquiries" && enquiries.length > 0 && (
-                <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-foreground/10 text-muted-foreground font-mono">
+                <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-secondary border border-border text-muted-foreground font-mono">
                   {enquiries.length}
                 </span>
               )}
@@ -270,11 +271,7 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-border mt-auto space-y-2">
-          <div className="flex items-center justify-between px-3 py-2">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Appearance</span>
-            <ThemeToggle />
-          </div>
+        <div className="p-4 border-t border-border mt-auto">
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-all"
@@ -309,7 +306,7 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
           }}
         />
 
-        <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md px-6 md:px-10 py-5 flex items-center justify-between">
+        <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-md px-6 md:px-10 h-[81px] flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -327,13 +324,16 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
 
-          <button
-            onClick={fetchData}
-            className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-2xl border border-border text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-secondary transition-all"
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            <span className="hidden sm:inline">Sync Data</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button
+              onClick={fetchData}
+              className="flex items-center gap-2 px-4 md:px-5 py-2 md:py-2.5 rounded-2xl border border-border text-[10px] md:text-xs font-bold uppercase tracking-widest hover:bg-secondary transition-all"
+            >
+              <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+              <span className="hidden sm:inline">Sync Data</span>
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto px-10 py-10">
@@ -887,6 +887,18 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
             )}
           </AnimatePresence>
         </div>
+
+        <footer className="py-8 px-10 text-center text-sm md:text-base text-muted-foreground font-medium bg-background/50">
+          Built with 💙 Made by{" "}
+          <a
+            href="https://venusapp.in/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-foreground hover:text-brand-accent transition-colors underline underline-offset-4"
+          >
+            Veil
+          </a>
+        </footer>
       </main>
 
       <AnimatePresence>
