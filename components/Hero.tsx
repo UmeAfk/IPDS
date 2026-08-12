@@ -6,24 +6,24 @@ import Image from "next/image";
 
 export default function Hero({ imageUrl }: { imageUrl?: string }) {
   return (
-    <section className="relative min-h-screen overflow-hidden flex flex-col justify-center">
+    <section className="relative min-h-[85vh] md:min-h-screen overflow-hidden flex flex-col justify-center bg-background">
       {imageUrl ? (
         <Image
           src={imageUrl}
           alt="Modern architecture"
           fill
           priority
-          className="object-cover animate-ken-burns"
+          className="object-cover object-center animate-ken-burns"
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-stone-900 via-stone-800 to-stone-950" />
       )}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: "linear-gradient(to top, rgba(10,8,5,0.88) 0%, rgba(10,8,5,0.45) 50%, rgba(10,8,5,0.15) 100%)",
-        }}
-      />
+      {/* Dark overlay for contrast */}
+      <div className="absolute inset-0 bg-black/35 pointer-events-none z-[1]" />
+
+      {/* Smooth transparent bottom fade — blends hero image into page background */}
+      <div className="absolute bottom-0 left-0 right-0 h-[35%] bg-gradient-to-t from-background via-background/60 to-transparent pointer-events-none z-[2]" />
+
       <div className="relative z-10 container-custom">
         <motion.div
           initial={{ opacity: 0, y: 24 }}

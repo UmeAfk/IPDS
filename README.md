@@ -1,6 +1,6 @@
 <div align="center">
 
-# IPDS — Ideal Property Development Services
+# IPDS
 
 **Modern ArchViz Showcase & Real Estate Redevelopment Platform**
 
