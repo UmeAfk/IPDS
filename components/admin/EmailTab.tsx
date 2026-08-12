@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Send, CheckCircle2, AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react";
+import CustomSelect from "@/components/ui/CustomSelect";
 
 interface Visitor {
   id: string; name: string; email: string; contact: string;
@@ -103,16 +104,15 @@ The ArchViz Studio Team`);
                   initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
                   className="overflow-hidden"
                 >
-                  <select 
-                    value={selProject} 
-                    onChange={e => setSelProject(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-secondary/50 border border-border text-sm focus:outline-none focus:ring-1 focus:ring-brand-accent/20"
-                  >
-                    <option value="">Select a project…</option>
-                    {projects.map(p => (
-                      <option key={p} value={p}>{p} ({visitors.filter(v => v.project === p).length} visitors)</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value={selProject}
+                    onChange={setSelProject}
+                    placeholder="Select a project…"
+                    options={projects.map(p => ({
+                      value: p,
+                      label: `${p} (${visitors.filter(v => v.project === p).length} visitors)`
+                    }))}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

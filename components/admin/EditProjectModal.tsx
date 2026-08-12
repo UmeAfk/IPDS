@@ -22,6 +22,26 @@ import {
   updateProjectBlogOverview,
   setSiteUpdateThumbnail
 } from "@/lib/supabase";
+import CustomSelect from "@/components/ui/CustomSelect";
+
+const TYPE_OPTIONS = [
+  { value: "Residential", label: "Residential" },
+  { value: "Commercial", label: "Commercial" },
+  { value: "Institutional", label: "Institutional" },
+  { value: "Temple", label: "Temple/Religious" },
+  { value: "Complex", label: "Mixed Complex" },
+];
+
+const CATEGORY_OPTIONS = [
+  { value: "key", label: "Key Projects" },
+  { value: "ongoing", label: "Ongoing Redevelopment" },
+];
+
+const ACCESS_OPTIONS = [
+  { value: "public", label: "Public" },
+  { value: "password", label: "Password" },
+  { value: "otp", label: "OTP Code" },
+];
 
 interface EditProjectModalProps {
   project?: Project; // Optional for creation mode
@@ -55,6 +75,15 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
   const [darkImageUrl, setDarkImageUrl] = useState<string | null>(null);
   const [lightImageUrl, setLightImageUrl] = useState<string | null>(null);
   const savingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Drag-over states for thumbnail pickers
+  const [isDraggingMain, setIsDraggingMain] = useState(false);
+  const [isDraggingDark, setIsDraggingDark] = useState(false);
+  const [isDraggingLight, setIsDraggingLight] = useState(false);
+
+  // Gallery multi-file upload queue
+  const [uploadQueue, setUploadQueue] = useState<{name: string; status: 'pending' | 'uploading' | 'done' | 'error'}[]>([]);
+  const [isDraggingGallery, setIsDraggingGallery] = useState(false);
 
   useEffect(() => {
     if (!mainImage) { setMainImageUrl(null); return; }
@@ -92,7 +121,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
   // Blog Data
   const [blogData, setBlogData] = useState<any>(null);
   const [story, setStory] = useState("");
-  const [hasLiveUpdates, setHasLiveUpdates] = useState(false);
+  const [hasLiveUpdates, setHasLiveUpdates] = useState(true);
   const [youtubeUrl, setYoutubeUrl] = useState("");
 
   const loadBlogData = useCallback(async () => {
@@ -102,7 +131,7 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
     if (data) {
       setBlogData(data);
       setStory(data.long_description || "");
-      setHasLiveUpdates(data.has_live_updates || false);
+      setHasLiveUpdates(data.has_live_updates ?? true);
     }
     setLoading(false);
   }, [project?.id]);
@@ -233,6 +262,30 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
     }
   }
 
+  async function handleGalleryFiles(files: File[]) {
+    const allowed = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
+    if (!allowed.length || !project?.id) return;
+
+    setUploadQueue(allowed.map(f => ({ name: f.name, status: 'pending' as const })));
+    let currentGallery: any[] = blogData?.gallery_updates || [];
+
+    for (let i = 0; i < allowed.length; i++) {
+      setUploadQueue(q => q.map((item, idx) => idx === i ? { ...item, status: 'uploading' as const } : item));
+      const { error, url } = await addSiteUpdate(project!.id, allowed[i], currentGallery);
+      if (!error && url) {
+        const mt = allowed[i].type.includes('video') ? 'video' : 'image';
+        currentGallery = [...currentGallery, { media_url: url, media_type: mt, caption: '' }];
+        setUploadQueue(q => q.map((item, idx) => idx === i ? { ...item, status: 'done' as const } : item));
+      } else {
+        setUploadQueue(q => q.map((item, idx) => idx === i ? { ...item, status: 'error' as const } : item));
+      }
+    }
+
+    haptic.confirm();
+    loadBlogData();
+    setTimeout(() => setUploadQueue([]), 2500);
+  }
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -259,25 +312,64 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-8 py-4 border-b border-border flex gap-4 overflow-x-auto no-scrollbar">
-          {[
-            { id: "general", label: "General", icon: Settings },
-            { id: "content", label: "Story", icon: Type },
-            { id: "updates", label: "Gallery", icon: Activity, disabled: isNew },
-          ].map((t) => (
-            <button
-              key={t.id}
-              disabled={t.disabled}
-              onClick={() => { haptic(); setActiveTab(t.id as any); }}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
-                activeTab === t.id ? "bg-foreground text-background" : "text-muted-foreground hover:bg-secondary"
-              } ${t.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
-            >
-              <t.icon size={14} />
-              {t.label}
-            </button>
-          ))}
+        {/* Tabs & Top Actions */}
+        <div className="px-8 py-3 border-b border-border flex items-center justify-between gap-4 bg-secondary/10">
+          <div className="flex gap-3 overflow-x-auto no-scrollbar">
+            {[
+              { id: "general", label: "General", icon: Settings },
+              { id: "content", label: "Story", icon: Type },
+              { id: "updates", label: "Gallery", icon: Activity, disabled: isNew },
+            ].map((t) => (
+              <button
+                key={t.id}
+                disabled={t.disabled}
+                onClick={() => { haptic(); setActiveTab(t.id as any); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all ${
+                  activeTab === t.id ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:bg-secondary"
+                } ${t.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+              >
+                <t.icon size={14} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3">
+            {!isNew && (
+              <button
+                onClick={handleDelete}
+                disabled={!!saving}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-red-400 hover:bg-red-400/10 text-[10px] font-bold uppercase tracking-widest transition-all disabled:opacity-40"
+                title="Discard Project"
+              >
+                {saving === 'deleting' ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                <span className="hidden sm:inline">Discard</span>
+              </button>
+            )}
+
+            {activeTab === 'updates' ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-border bg-secondary/30 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                Auto-saved
+              </div>
+            ) : (
+              <button
+                onClick={activeTab === 'general' ? handleSaveGeneral : handleSaveOverview}
+                disabled={!!saving}
+                className="btn-vercel h-9 px-6 text-xs font-bold uppercase tracking-widest flex items-center gap-2 justify-center disabled:opacity-50"
+              >
+                {saving === 'general' || saving === 'overview' ? (
+                  <><Loader2 size={13} className="animate-spin" /> Saving...</>
+                ) : saving === 'success' ? (
+                  <>✓ Saved!</>
+                ) : activeTab === 'general' ? (
+                  <><Save size={13} /> {isNew ? 'Create' : 'Save Changes'}</>
+                ) : (
+                  <><Save size={13} /> Save Story</>
+                )}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -317,28 +409,15 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Type</label>
-                      <select value={type} onChange={e => setType(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none font-body">
-                        <option value="Residential">Residential</option>
-                        <option value="Commercial">Commercial</option>
-                        <option value="Institutional">Institutional</option>
-                        <option value="Temple">Temple/Religious</option>
-                        <option value="Complex">Mixed Complex</option>
-                      </select>
+                      <CustomSelect value={type} onChange={setType} options={TYPE_OPTIONS} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Category</label>
-                      <select value={category} onChange={e => setCategory(e.target.value as any)} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none font-body">
-                        <option value="key">Key Projects</option>
-                        <option value="ongoing">Ongoing Redevelopment</option>
-                      </select>
+                      <CustomSelect value={category} onChange={val => setCategory(val as any)} options={CATEGORY_OPTIONS} placeholder="Select Category" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Access</label>
-                      <select value={accessType} onChange={e => setAccessType(e.target.value)} className="w-full px-5 py-3 rounded-2xl bg-secondary/30 border border-border text-xs outline-none font-body">
-                        <option value="public">Public</option>
-                        <option value="password">Password</option>
-                        <option value="otp">OTP Code</option>
-                      </select>
+                      <CustomSelect value={accessType} onChange={setAccessType} options={ACCESS_OPTIONS} />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">Password</label>
@@ -348,58 +427,102 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                 </div>
 
                 <div className="space-y-6">
-                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-4 border-t border-border/30">Thumbnails</h4>
+                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground pt-4 border-t border-border/30">Thumbnails — click or drag an image onto each slot</h4>
                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                      {/* ── Main Thumbnail ─────────────────────────── */}
                       <div className="space-y-2">
                          <label className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Main Thumbnail</label>
-                         <div className="relative group aspect-video bg-secondary/20 border border-border border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-secondary/30 transition-all">
-                            {mainImageUrl ? <Image src={mainImageUrl} alt="Preview" fill unoptimized className="absolute inset-0 object-cover" /> 
-                             : project?.image_url ? <Image src={project.image_url} alt={project.title} fill className="absolute inset-0 object-cover" /> 
-                             : <><ImageIcon size={24} className="text-muted-foreground/30" /><span className="text-[10px] font-bold text-muted-foreground/50">Select Image</span></>}
-                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setMainImage(e.target.files?.[0] || null)} />
+                         <div
+                           className={`relative group aspect-video bg-secondary/20 border-2 border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
+                             isDraggingMain ? 'border-brand-accent bg-brand-accent/5 scale-[1.01]' : 'border-border hover:border-brand-accent/40 hover:bg-secondary/30'
+                           }`}
+                           onDragOver={e => { e.preventDefault(); setIsDraggingMain(true); }}
+                           onDragLeave={() => setIsDraggingMain(false)}
+                           onDrop={e => { e.preventDefault(); setIsDraggingMain(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) setMainImage(f); }}
+                           onClick={() => document.getElementById('main-thumb-input')?.click()}
+                         >
+                            {mainImageUrl ? <Image src={mainImageUrl} alt="Preview" fill unoptimized className="absolute inset-0 object-cover" />
+                             : project?.image_url ? <Image src={project.image_url} alt={project.title} fill className="absolute inset-0 object-cover" />
+                             : <>
+                                 <Upload size={20} className={isDraggingMain ? 'text-brand-accent' : 'text-muted-foreground/30'} />
+                                 <span className={`text-[10px] font-bold ${isDraggingMain ? 'text-brand-accent' : 'text-muted-foreground/50'}`}>
+                                   {isDraggingMain ? 'Drop to set' : 'Click or drag image'}
+                                 </span>
+                               </>}
+                            {(mainImageUrl || project?.image_url) && (
+                              <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${
+                                isDraggingMain ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              }`}>
+                                <span className="text-white text-[10px] font-bold uppercase tracking-widest">
+                                  {isDraggingMain ? 'Drop to replace' : 'Click or drag to replace'}
+                                </span>
+                              </div>
+                            )}
+                            <input type="file" accept="image/*" id="main-thumb-input" className="hidden" onChange={e => setMainImage(e.target.files?.[0] || null)} />
                          </div>
                       </div>
+
+                      {/* ── Dark Mode ──────────────────────────────── */}
                       <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
                          <label className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Dark Mode (Opt)</label>
-                         <div className="relative group aspect-video bg-secondary/20 border border-border border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer">
-                            {darkImageUrl ? <Image src={darkImageUrl} alt="Dark preview" fill unoptimized className="absolute inset-0 object-cover" /> 
-                             : project?.image_url_dark ? <Image src={project.image_url_dark} alt="Dark version" fill className="absolute inset-0 object-cover" /> 
-                             : <ImageIcon size={20} className="text-muted-foreground/30" />}
-                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setDarkImage(e.target.files?.[0] || null)} />
+                         <div
+                           className={`relative group aspect-video bg-secondary/20 border-2 border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
+                             isDraggingDark ? 'border-brand-accent bg-brand-accent/5 scale-[1.01]' : 'border-border'
+                           }`}
+                           onDragOver={e => { e.preventDefault(); setIsDraggingDark(true); }}
+                           onDragLeave={() => setIsDraggingDark(false)}
+                           onDrop={e => { e.preventDefault(); setIsDraggingDark(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) setDarkImage(f); }}
+                           onClick={() => document.getElementById('dark-thumb-input')?.click()}
+                         >
+                            {darkImageUrl ? <Image src={darkImageUrl} alt="Dark preview" fill unoptimized className="absolute inset-0 object-cover" />
+                             : project?.image_url_dark ? <Image src={project.image_url_dark} alt="Dark version" fill className="absolute inset-0 object-cover" />
+                             : <ImageIcon size={20} className={isDraggingDark ? 'text-brand-accent' : 'text-muted-foreground/30'} />}
+                            {(darkImageUrl || project?.image_url_dark) && (
+                              <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${
+                                isDraggingDark ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              }`}>
+                                <span className="text-white text-[10px] font-bold uppercase tracking-widest">
+                                  {isDraggingDark ? 'Drop to replace' : 'Click or drag'}
+                                </span>
+                              </div>
+                            )}
+                            <input type="file" accept="image/*" id="dark-thumb-input" className="hidden" onChange={e => setDarkImage(e.target.files?.[0] || null)} />
                          </div>
                       </div>
+
+                      {/* ── Light Mode ─────────────────────────────── */}
                       <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
                          <label className="text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Light Mode (Opt)</label>
-                         <div className="relative group aspect-video bg-secondary/20 border border-border border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer">
-                            {lightImageUrl ? <Image src={lightImageUrl} alt="Light preview" fill unoptimized className="absolute inset-0 object-cover" /> 
-                             : project?.image_url_light ? <Image src={project.image_url_light} alt="Light version" fill className="absolute inset-0 object-cover" /> 
-                             : <ImageIcon size={20} className="text-muted-foreground/30" />}
-                            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setLightImage(e.target.files?.[0] || null)} />
+                         <div
+                           className={`relative group aspect-video bg-secondary/20 border-2 border-dashed rounded-2xl overflow-hidden flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${
+                             isDraggingLight ? 'border-brand-accent bg-brand-accent/5 scale-[1.01]' : 'border-border'
+                           }`}
+                           onDragOver={e => { e.preventDefault(); setIsDraggingLight(true); }}
+                           onDragLeave={() => setIsDraggingLight(false)}
+                           onDrop={e => { e.preventDefault(); setIsDraggingLight(false); const f = e.dataTransfer.files[0]; if (f?.type.startsWith('image/')) setLightImage(f); }}
+                           onClick={() => document.getElementById('light-thumb-input')?.click()}
+                         >
+                            {lightImageUrl ? <Image src={lightImageUrl} alt="Light preview" fill unoptimized className="absolute inset-0 object-cover" />
+                             : project?.image_url_light ? <Image src={project.image_url_light} alt="Light version" fill className="absolute inset-0 object-cover" />
+                             : <ImageIcon size={20} className={isDraggingLight ? 'text-brand-accent' : 'text-muted-foreground/30'} />}
+                            {(lightImageUrl || project?.image_url_light) && (
+                              <div className={`absolute inset-0 bg-black/50 flex items-center justify-center transition-opacity ${
+                                isDraggingLight ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              }`}>
+                                <span className="text-white text-[10px] font-bold uppercase tracking-widest">
+                                  {isDraggingLight ? 'Drop to replace' : 'Click or drag'}
+                                </span>
+                              </div>
+                            )}
+                            <input type="file" accept="image/*" id="light-thumb-input" className="hidden" onChange={e => setLightImage(e.target.files?.[0] || null)} />
                          </div>
                       </div>
+
                    </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t border-border/50">
-                  {!isNew && (
-                    <button onClick={handleDelete} disabled={!!saving} className="flex items-center gap-2 px-4 py-2 rounded-xl text-red-400 hover:bg-red-400/10 text-[10px] font-bold uppercase tracking-widest transition-all">
-                      {saving === "deleting" ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                      Discard Project
-                    </button>
-                  )}
-                  <div className="flex gap-4 ml-auto">
-                    <button onClick={handleSaveGeneral} disabled={!!saving} className="btn-vercel h-12 px-10 text-xs font-bold uppercase tracking-widest flex items-center gap-2 min-w-[200px] justify-center">
-                      {saving === "general" ? (
-                         <><Loader2 size={14} className="animate-spin" /> Uploading...</>
-                      ) : saving === "success" ? (
-                         <>Uploaded!</>
-                      ) : (
-                         <><Save size={14} /> {isNew ? "Create Project" : "Save Settings & Publish"}</>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
+               </motion.div>
             )}
 
             {activeTab === "content" && (
@@ -414,10 +537,6 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                     <h3 className="text-lg font-medium tracking-tight">Project Story Overview</h3>
                   </div>
                   <textarea value={story} onChange={e => setStory(e.target.value)} rows={6} className="w-full px-5 py-3 rounded-2xl bg-secondary/50 border border-border text-sm outline-none focus:ring-1 focus:ring-brand-accent/20 resize-none font-light leading-relaxed" placeholder="Write the narrative for this project..." />
-                  <div className="flex items-center justify-between">
-                    <button onClick={() => setHasLiveUpdates(!hasLiveUpdates)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${hasLiveUpdates ? "border-brand-accent/30 bg-brand-accent/5 text-brand-accent" : "border-border text-muted-foreground"}`}><span className={`w-1.5 h-1.5 rounded-full ${hasLiveUpdates ? "bg-brand-accent animate-pulse" : "bg-muted-foreground/30"}`} />{hasLiveUpdates ? "Gallery Enabled" : "Gallery Disabled"}</button>
-                    <button onClick={handleSaveOverview} disabled={!!saving} className="btn-vercel h-10 px-8 text-xs font-bold uppercase tracking-widest flex items-center gap-2">{saving === "overview" ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}Save Narrative</button>
-                  </div>
                 </section>
               </motion.div>
             )}
@@ -432,35 +551,107 @@ export default function EditProjectModal({ project, onClose, onUpdate }: EditPro
                   <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-brand-accent"><Upload size={18} /></div>
                   <h3 className="text-lg font-medium tracking-tight">Upload to Gallery</h3>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-8 rounded-3xl border border-border bg-secondary/10 flex flex-col items-center justify-center text-center space-y-4 hover:bg-secondary/20 transition-all">
-                     <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-muted-foreground"><ImageIcon size={24} /></div>
-                     <input type="file" accept="image/*,video/mp4,video/webm" className="hidden" id="modal-upload" onChange={async (e) => { 
-                       const file = e.target.files?.[0]; 
-                       if(!file) return; 
-                       
-                       // 80MB size limit check
-                       const MAX_SIZE = 80 * 1024 * 1024;
-                       if (file.size > MAX_SIZE) {
-                         alert("File is too large. Max size is 80MB.");
-                         e.target.value = '';
-                         return;
-                       }
 
-                       setSaving("uploading"); 
-                       await addSiteUpdate(project!.id, file, blogData?.gallery_updates || []); 
-                       setSaving(null); haptic.confirm(); loadBlogData(); 
-                     }} />
-                     <button onClick={() => document.getElementById('modal-upload')?.click()} className="btn-vercel h-10 px-6 text-[10px]">{saving === "uploading" ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}Upload Image/MP4</button>
+                {/* ── Multi-file drag-and-drop dropzone ─────────── */}
+                <div
+                  className={`relative rounded-3xl border-2 border-dashed transition-all cursor-pointer select-none ${
+                    isDraggingGallery
+                      ? 'border-brand-accent bg-brand-accent/5 scale-[1.01]'
+                      : 'border-border bg-secondary/10 hover:border-brand-accent/40 hover:bg-secondary/20'
+                  }`}
+                  onDragOver={e => { e.preventDefault(); setIsDraggingGallery(true); }}
+                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDraggingGallery(false); }}
+                  onDrop={e => { e.preventDefault(); setIsDraggingGallery(false); const files = Array.from(e.dataTransfer.files); if (files.length) handleGalleryFiles(files); }}
+                  onClick={() => document.getElementById('gallery-multi-upload')?.click()}
+                >
+                  <div className="p-10 flex flex-col items-center justify-center text-center gap-4">
+                    <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all ${
+                      isDraggingGallery ? 'bg-brand-accent/20 text-brand-accent scale-110' : 'bg-secondary text-muted-foreground'
+                    }`}>
+                      <Upload size={28} />
+                    </div>
+                    <div>
+                      <p className={`font-semibold text-sm transition-colors ${
+                        isDraggingGallery ? 'text-brand-accent' : 'text-foreground'
+                      }`}>
+                        {isDraggingGallery ? 'Drop your files here' : 'Drag & drop images or videos'}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">Or click to browse — select multiple files at once</p>
+                      <p className="text-[10px] text-muted-foreground/40 mt-1.5 font-mono uppercase tracking-widest">JPG · PNG · WEBP · MP4 · WEBM &nbsp;·&nbsp; Max 80 MB each</p>
+                    </div>
                   </div>
+                  <input
+                    type="file"
+                    accept="image/*,video/mp4,video/webm"
+                    multiple
+                    id="gallery-multi-upload"
+                    className="hidden"
+                    onChange={e => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length) handleGalleryFiles(files);
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
 
-                  <div className="p-8 rounded-3xl border border-border bg-secondary/10 flex flex-col items-center justify-center text-center space-y-4 hover:bg-secondary/20 transition-all">
-                    <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-red-500/80"><Video size={24} /></div>
-                     <div className="w-full flex gap-2">
-                       <input value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="Paste YouTube URl here..." className="flex-1 px-4 py-2 rounded-xl bg-background border border-border text-xs outline-none focus:border-brand-accent/50" />
-                       <button onClick={handleAddYoutube} disabled={!!saving || !youtubeUrl} className="btn-vercel h-10 px-4 text-[10px] whitespace-nowrap">{saving === "youtube" ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}Add Link</button>
-                     </div>
+                {/* ── Upload Queue ──────────────────────────────── */}
+                {uploadQueue.length > 0 && (
+                  <div className="space-y-2 p-4 rounded-2xl bg-secondary/20 border border-border">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                        Uploading {uploadQueue.filter(q => q.status === 'done').length} of {uploadQueue.length} files
+                      </p>
+                      {/* Overall progress bar */}
+                      <div className="w-32 h-1.5 rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className="h-full bg-brand-accent rounded-full transition-all duration-500"
+                          style={{ width: `${(uploadQueue.filter(q => q.status === 'done').length / uploadQueue.length) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                    {uploadQueue.map((item, i) => (
+                      <div key={i} className="flex items-center gap-3 py-1">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 transition-colors ${
+                          item.status === 'done'      ? 'bg-green-400' :
+                          item.status === 'error'     ? 'bg-red-400' :
+                          item.status === 'uploading' ? 'bg-brand-accent animate-pulse' :
+                          'bg-muted-foreground/20'
+                        }`} />
+                        <span className="text-xs text-muted-foreground truncate flex-1 font-mono">{item.name}</span>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest flex-shrink-0 flex items-center gap-1 ${
+                          item.status === 'done'      ? 'text-green-400' :
+                          item.status === 'error'     ? 'text-red-400' :
+                          item.status === 'uploading' ? 'text-brand-accent' :
+                          'text-muted-foreground/30'
+                        }`}>
+                          {item.status === 'uploading' && <Loader2 size={10} className="animate-spin" />}
+                          {item.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* ── YouTube URL ───────────────────────────────── */}
+                <div className="p-5 rounded-2xl border border-border bg-secondary/10 flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-red-500/80 flex-shrink-0">
+                    <Video size={18} />
+                  </div>
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      value={youtubeUrl}
+                      onChange={e => setYoutubeUrl(e.target.value)}
+                      placeholder="Paste YouTube URL here..."
+                      className="flex-1 px-4 py-2 rounded-xl bg-background border border-border text-xs outline-none focus:border-brand-accent/50"
+                    />
+                    <button
+                      onClick={handleAddYoutube}
+                      disabled={!!saving || !youtubeUrl}
+                      className="btn-vercel h-10 px-4 text-[10px] whitespace-nowrap flex items-center gap-1"
+                    >
+                      {saving === 'youtube' ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                      Add Link
+                    </button>
                   </div>
                 </div>
 
