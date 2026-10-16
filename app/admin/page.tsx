@@ -15,6 +15,7 @@ export default function AdminPage() {
   useEffect(() => {
     fetch("/api/admin-check")
       .then(r => { if (r.ok) setIsAuth(true); })
+      .catch(() => setError("Authentication service unavailable"))
       .finally(() => setChecking(false));
   }, []);
 
@@ -45,7 +46,7 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     await fetch("/api/admin-logout", { method: "POST" });
-    setIsAuth(false);
+    window.location.reload();
   };
 
   if (checking) {

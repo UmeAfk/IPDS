@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requiresAdminPassword } from "@/lib/admin-access";
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Only protect sub-paths under /admin, not /admin itself (login page)
   if (pathname.startsWith("/admin/")) {
     const cookie = req.cookies.get("ipds_admin")?.value;
-    if (cookie !== "1") {
+    if (cookie !== "1" && await requiresAdminPassword()) {
       return NextResponse.redirect(new URL("/admin", req.url));
     }
   }

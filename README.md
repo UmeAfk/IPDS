@@ -16,6 +16,10 @@
 
 A Next.js 14 showcase platform for **IPDS**, a Pune-based self-redevelopment consultancy. Features a public portfolio with project galleries, uncropped hero showcases, live updates, rich formatted story narratives, and a full-featured executive admin panel with Supabase backend.
 
+### Admin password toggle
+
+The admin dashboard includes a **Require admin password** switch. Protection is on by default. Turning it off allows anyone with the `/admin` link to enter and edit the panel. The choice is saved in the existing Supabase `site_content` table and applies across browsers and visits; no schema migration is needed. Configure `ADMIN_PASSWORD_HASH` (or `ADMIN_PASSWORD` for local development) before turning protection back on. Missing settings or database read errors keep password protection enabled.
+
 </div>
 
 ---

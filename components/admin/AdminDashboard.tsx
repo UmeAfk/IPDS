@@ -17,6 +17,7 @@ import EditProjectModal from "./EditProjectModal";
 import EmailTab from "./EmailTab";
 import ContentTab from "./ContentTab";
 import ThemeToggle from "../ThemeToggle";
+import AdminAccessToggle from "./AdminAccessToggle";
 import { animate } from "animejs";
 
 function NumberTicker({ value }: { value: number }) {
@@ -337,6 +338,7 @@ export default function AdminDashboard({ onLogout }: { onLogout: () => void }) {
         </header>
 
         <div className="flex-1 overflow-y-auto px-10 py-10">
+          <AdminAccessToggle />
           <AnimatePresence mode="wait">
             {tab === "overview" && (
               <motion.div
